@@ -1,4 +1,3 @@
-
 [project]
 name = "zmx2batoid"
 license = {file = "LICENSE"}
@@ -97,3 +96,9 @@ ignore = [
 
 [tool.coverage.run]
 omit=["src/zmx2batoid/_version.py"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

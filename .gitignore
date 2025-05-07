@@ -51,6 +51,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+tests/test_data/test_output*
 
 # Translations
 *.mo
