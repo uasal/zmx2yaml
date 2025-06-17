@@ -13,7 +13,7 @@ import yaml
 from batoid.medium import ConstMedium
 from batoid.optic import Optic
 
-from zmx2batoid.zmx_parsers_old import PrescriptionDataParser
+from zmx2batoid.zmx_parsers import PrescriptionDataParser
 
 ##############################
 ####  Anchor index values ####
