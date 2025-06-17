@@ -592,7 +592,7 @@ class ZMX2YAML:
         -------
         None
         """
-        with open(name + '.yaml', 'w') as f:
+        with open(name, 'w') as f:
             yaml.dump(
                 self.build_dict_file(),
                 f,
