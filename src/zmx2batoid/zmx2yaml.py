@@ -8,12 +8,17 @@ Author: Pierre Raphaël Nicolas
 Date: 05/30/2025
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import yaml
 from batoid.medium import ConstMedium
 from batoid.optic import Optic
 
-from zmx2batoid.zmx_parsers import PrescriptionDataParser
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from zmx2batoid.zmx_parsers import PrescriptionDataParser  # type: ignore
 
 ##############################
 ####  Anchor index values ####
