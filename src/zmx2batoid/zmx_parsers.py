@@ -1,272 +1,10 @@
-import numpy as np
 import os
 
-class Surface:
-    def __init__(self, name):
-        """
-        Initialize a Surface object with a given name.
-        """
-        self.name = name
-
-    def __setattr__(self, key, value):
-        """
-        Override attribute setting to clean up specific values like CURV, DIAM, DISZ and PARM.
-        """
-        if key in ["CURV", "DISZ", "CONI"]:  # Handle CURV and DISZ specifically
-            value = self._parse_first_float(value)
-        elif key == "DIAM":  # Handle DIAM specifically, multiplying by 2
-            value = self._parse_first_float(value) * 2
-        elif key.startswith("PARM"):  # Handle PARM specifically
-            param_index, param_value = self._parse_parm(value)
-            key = f"PARM{param_index}"
-            value = param_value
-        elif key == "CLAP" or key == "ELAP":
-            value = self._parse_aper(value)
-        elif key == "SQAP":
-            value = 2 * self._parse_aper(value)
-        elif key == "OBDC":
-            value = self._parse_obsc(value)
-        super().__setattr__(key, value)
-
-    @staticmethod
-    def _parse_first_float(value):
-        """
-        Extract and return the first float value from a string.
-        """
-        try:
-            return float(value.split()[0])  # Extract the first float
-        except (ValueError, IndexError):
-            return value  # Return the raw value if parsing fails
-    
-    @staticmethod
-    def _parse_parm(value):
-        """
-        Parse a PARM line into its index and value.
-        """
-        try:
-            parts = value.split()
-            param_index = int(parts[0])  # Extract the PARM index
-            param_value = float(parts[1])  # Extract the PARM value
-            return param_index, param_value
-        except (ValueError, IndexError):
-            raise ValueError(f"Invalid PARM format: {value}")
-    
-    @staticmethod
-    def _parse_aper(value):
-        """
-        Parse a aperture line into its values.
-        """
-        try:
-            parts = value.split()[:-1]
-            return np.array(parts, dtype=float)
-        except (ValueError, IndexError):
-            raise ValueError(f"Invalid APER format: {value}")
-        
-    @staticmethod
-    def _parse_obsc(value):
-        """
-        Parse a aperture line into its values.
-        """
-        try:
-            parts = value.split()
-            return np.array(parts, dtype=float)
-        except (ValueError, IndexError):
-            raise ValueError(f"Invalid APER format: {value}")
-
-    def __repr__(self):
-        """
-        Represent the Surface object with its name and attributes.
-        """
-        return f"Surface(name={self.name}, attributes={self.__dict__})"
-    
-    # def __getattr__(self, name):
-    #     if name in self.__dict__:
-    #         return self.__dict__[name]
-    #     raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-    
-    def items(self):
-        return self.__dict__.items()
-
-class SystemDetails:
-    def __init__(self):
-        """
-        Initialize the SystemDetails object with default attributes.
-        """
-        self.ENPD = None
-        self.UNIT = None
-        self.WAVM = []
-        self.FEFD = []
-        self.XFLD = []
-        self.YFLD = []
-        self.FLDS = []
-
-    def __repr__(self):
-        """
-        Represent the SystemDetails object with its attributes.
-        """
-        return f"SystemDetails(ENPD={self.ENPD}, UNIT={self.UNIT}, WAVM={self.WAVM}, FEFD={self.FEFD})"
-
-class ZemaxFileParser:
-    def __init__(self, file_path, encoding='utf-16'):
-        """
-        Initialize the parser with the path to the Zemax .zmx file.
-        Automatically reads the file and parses all relevant data.
-        """
-        self.file_path = file_path
-        self.encoding = encoding
-        self.file_content = None
-        self.surfaces = {}
-        self.system_details = SystemDetails()
-        self.STOP = None  # Attribute to hold the STOP surface
-        
-        # Automatically perform all parsing steps
-        self._initialize_parser()
-
-    def _initialize_parser(self):
-        """
-        Perform all necessary parsing steps during initialization.
-        """
-        self.read_file(encoding=self.encoding)
-        self.parse_surfaces()
-        self.identify_stop_surface()
-        self.parse_system_details()
-
-        FLDS = list(map(lambda coord: list(coord), zip(self.system_details.XFLD, self.system_details.YFLD)))
-        FLDS.insert(0, [0, 0]) # "insert" just to have the right indexing like in ZMX
-        self.system_details.FLDS = FLDS + self.system_details.FEFD
-
-    def read_file(self, encoding):
-        """
-        Reads the file with UTF-16 encoding and stores the content as text.
-        """
-        with open(self.file_path, 'r', encoding=encoding) as file:
-            self.file_content = file.readlines()
-
-    def parse_surfaces(self):
-        """
-        Parses the file content to extract surface information and create Surface objects.
-        """
-        if not self.file_content:
-            raise ValueError("File content is empty. Did you call read_file()?")
-
-        current_surface = None
-        current_surface_number = None
-
-        for line in self.file_content:
-            line = line.strip()
-
-            if line.startswith("SURF"):  # Start of a new surface
-                if current_surface:
-                    # Determine the name: use COMM if present, otherwise use the surface number
-                    self._store_surface(current_surface, current_surface_number)
-
-                # Initialize a new surface
-                current_surface_number = line.split(" ", 1)[-1]
-                current_surface = Surface(name=current_surface_number)
-            elif current_surface and line:  # Parse details of the current surface
-                key_value = line.split(" ", 1)
-                if len(key_value) == 2:  # Key-value pair
-                    key, value = key_value
-                    setattr(current_surface, key, value)
-                elif len(key_value) == 1:  # Key only (e.g., "STOP")
-                    key = key_value[0]
-                    setattr(current_surface, key, True)  # Assign True for standalone keys like STOP
-
-        if current_surface:
-            # Store the last surface
-            self._store_surface(current_surface, current_surface_number)
-
-    def _store_surface(self, surface, surface_number):
-        """
-        Helper method to store a surface in the dictionary with appropriate keys.
-        """
-        # Store by surface number
-        self.surfaces[surface_number] = surface
-
-        # Store by COMM name if available
-        comm = getattr(surface, "COMM", None)
-        if comm:
-            self.surfaces[comm] = surface
-
-        # Include STOP marker in sublist keys if applicable
-        surface_name = [surface_number, comm] if comm else [surface_number]
-        if getattr(surface, "STOP", False):
-            surface_name.append("STOP")
-            self.surfaces["STOP"] = surface  # Add STOP key for direct access
-        surface_name = [elem for elem in surface_name if elem]  # Remove None
-        self.surfaces[tuple(surface_name)] = surface
-
-    def identify_stop_surface(self):
-        """
-        Identify the STOP surface by checking all surfaces for the STOP attribute.
-        """
-        for surface in self.surfaces.values():
-            if isinstance(surface, Surface) and getattr(surface, "STOP", False):
-                self.STOP = surface
-                self.surfaces["STOP"] = surface  # Ensure STOP key is available
-                break
-
-    def parse_system_details(self):
-        """
-        Parses the file content to extract system details like ENPD, UNIT, WAVM, and FEFD.
-        """
-        if not self.file_content:
-            raise ValueError("File content is empty. Did you call read_file()?")
-
-        for line in self.file_content:
-            line = line.strip()
-
-            if line.startswith("ENPD"):  # Entrance pupil diameter
-                try:
-                    self.system_details.ENPD = float(line.split(" ", 1)[-1])
-                except ValueError:
-                    self.system_details.ENPD = None
-            elif line.startswith("UNIT"):  # Units
-                self.system_details.UNIT = line.split(" ", 1)[-1].split()
-            elif line.startswith("WAVM"):  # Wavelengths
-                self.system_details.WAVM.append(line.split(" ", 1)[-1])
-            elif line.startswith("FEFD"):  # Other Fields
-                dummyLine = line.split(" ", 1)[-1].split()
-                self.system_details.FEFD.append(list(map(float, dummyLine[:2])))
-            elif line.startswith("XFLN"): # Fields X
-                self.system_details.XFLD = list(map(float, line.split(" ", 1)[-1].split()))
-            elif line.startswith("YFLN"): # Fields Y
-                self.system_details.YFLD = list(map(float, line.split(" ", 1)[-1].split()))
-    def surface(self, key):
-        """
-        Retrieve a Surface object by its surface number, COMM name, or tuple key.
-        """
-        return self.surfaces.get(key)
-
-    def get_surface_names(self):
-        """
-        Returns a list of sublists where each sublist contains the surface number,
-        COMM name, and STOP if applicable.
-        """
-        result = []
-        seen = set()
-
-        for key, surface in self.surfaces.items():
-            if isinstance(key, tuple):  # Surface names as tuples
-                if key not in seen:
-                    result.append(list(key))
-                    seen.add(key)
-            elif key.isdigit():  # Surface number only
-                comm = getattr(surface, "COMM", None)
-                surface_name = [key, comm] if comm else [key]
-                if getattr(surface, "STOP", False):
-                    surface_name.append("STOP")
-                surface_name = [elem for elem in surface_name if elem]  # Remove None
-                result.append(surface_name)
-                seen.add(tuple(surface_name))
-
-        return result
-    
-
-
+import numpy as np
 
 
 class PrescriptionDataParser:
+    """Parses optical prescription data files to extract relevant parameters."""
     def __init__(self, file_path):
         self.file_path = file_path
         self.surface_coordinates = {}
@@ -308,7 +46,10 @@ class PrescriptionDataParser:
         lines_iter = iter(lines)
         for line in lines_iter:
             stripped_line = line.lstrip().split()  # Handle lines with leading spaces
-            if len(stripped_line) >= 6 and stripped_line[0].isdigit() and self._is_numeric_list(stripped_line[1:6]):
+            if (len(stripped_line) >= 6
+                and stripped_line[0].isdigit()
+                and self._is_numeric_list(stripped_line[1:6])
+                ):
                 surface_num = stripped_line[0]
                 rotation_1 = np.array(stripped_line[1:4], dtype=float)
                 offset_1 = float(stripped_line[4])
@@ -323,7 +64,11 @@ class PrescriptionDataParser:
                     self.surface_coordinates[surface_num] = SurfaceCoordinates(None, None, None, comment)
                     continue
 
-                if len(line2) >= 5 and len(line3) >= 5 and self._is_numeric_list(line2[:5]) and self._is_numeric_list(line3[:5]):
+                if (len(line2) >= 5
+                    and len(line3) >= 5
+                    and self._is_numeric_list(line2[:5])
+                    and self._is_numeric_list(line3[:5])
+                    ):
                     rotation_2 = np.array(line2[:3], dtype=float)
                     offset_2 = float(line2[3])
                     tilt_2 = float(line2[4])
@@ -339,7 +84,12 @@ class PrescriptionDataParser:
                     offset_vector = None
                     tilt_vector = None
 
-                self.surface_coordinates[surface_num] = SurfaceCoordinates(rotation_matrix, offset_vector, tilt_vector, comment)
+                self.surface_coordinates[surface_num] = SurfaceCoordinates(
+                    rotation_matrix,
+                    offset_vector,
+                    tilt_vector,
+                    comment
+                    )
 
     def coordinates(self, surface_num):
         """Get SurfaceCoordinates object for a specific surface."""
@@ -347,7 +97,7 @@ class PrescriptionDataParser:
         if surface is None:
             print(f"Warning: Surface {surface_num} not found.")
         return surface
-    
+
     def extract_pupils(self):
         """Extract entrance and exit pupil positions and sizes from the file without using regex."""
         with open(self.file_path, 'r') as file:
@@ -361,7 +111,8 @@ class PrescriptionDataParser:
                 value = parts[1].strip()
 
                 # File name
-                if key == "File": # to ensure it is one 'File' which is found and not another line finishing by 'File'
+                if key == "File": # to ensure it is one 'File'
+                                  # which is found and not another line finishing by 'File'
                     try:
                         drive = value
                         rest_of_path = parts[2].strip()
@@ -370,7 +121,7 @@ class PrescriptionDataParser:
                         self.filename = os.path.splitext(os.path.basename(norm_path))[0] # import os
                     except Exception as e:
                         print(f"Warning: Could not extract file name. Error: {e}")
-                
+
                 # Unit
                 elif "Lens Units" in key:
                     try:
@@ -419,6 +170,7 @@ class PrescriptionDataParser:
                         print("Warning: Could not convert Exit Pupil Diameter to float.")
 
     def extract_fields(self):
+        """Extract and return field coordinates from the system data."""
         fields = []
 
         with open(self.file_path, 'r') as file:
@@ -454,6 +206,7 @@ class PrescriptionDataParser:
         self.fields = fields
 
     def extract_waves(self):
+        """Extract and store the list of wavelength values from the system data."""
         waves = []
 
         with open(self.file_path, 'r') as file:
@@ -493,6 +246,7 @@ class PrescriptionDataParser:
         self.waves = waves
 
     def extract_surface(self):
+        """Parse and store surface prescription data from the input file."""
         def is_float(s):
             s = s.strip()
             if s.lstrip("+-").isdigit():
@@ -502,7 +256,7 @@ class PrescriptionDataParser:
                 if left.lstrip("+-").isdigit() and right.isdigit():
                     return True  # it's a float
             return False
-        
+
         surfaces = {}
         surface_i = 0
         surface_nb = self.surface_nb
@@ -535,41 +289,45 @@ class PrescriptionDataParser:
                         surf_line = key_parts + [''] if len(key_parts) == 9 else (key_parts)
                         surf_line = [s.replace(" ", "") for s in surf_line[:-1]] + [surf_line[-1].strip()]
 
-                        NAME = [str(surface_i), surf_line[0]] if not surf_line[-1] else [str(surface_i), surf_line[0], surf_line[-1]]
-                        current_surface = SurfacePRD(name=list(set(NAME)))
+                        name = ([str(surface_i), surf_line[0]]
+                                if not surf_line[-1]
+                                else [str(surface_i), surf_line[0], surf_line[-1]]
+                                )
+                        current_surface = SurfacePRD(name=list(set(name)))
 
-                        setattr(current_surface, 'TYPE', surf_line[1])
+                        current_surface.TYPE = surf_line[1]
 
-                        CURV = 1/float(surf_line[2]) if is_float(surf_line[2]) else (0.0)
-                        setattr(current_surface, 'CURV', CURV)
+                        curv = 1/float(surf_line[2]) if is_float(surf_line[2]) else (0.0)
+                        current_surface.CURV = curv
 
-                        DISZ = float(surf_line[3]) if is_float(surf_line[3]) else (0.0)
-                        setattr(current_surface, 'DISZ', DISZ)
+                        disz = float(surf_line[3]) if is_float(surf_line[3]) else (0.0)
+                        current_surface.DISZ = disz
 
-                        GLAS = surf_line[4]
-                        if GLAS:
-                            setattr(current_surface, 'GLAS', surf_line[4])
+                        glas = surf_line[4]
+                        if glas:
+                            current_surface.GLAS = surf_line[4]
 
-                        DIAM = float(surf_line[5]) if is_float(surf_line[5]) else (None)
-                        if DIAM is not None:
-                            setattr(current_surface, 'DIAM', DIAM)
+                        diam = float(surf_line[5]) if is_float(surf_line[5]) else (None)
+                        if diam is not None:
+                            current_surface.DIAM = diam
 
-                        CONI = float(surf_line[-2]) if is_float(surf_line[-2]) else (None)
-                        if CONI is not None:
-                            setattr(current_surface, 'CONI', CONI)
+                        coni = float(surf_line[-2]) if is_float(surf_line[-2]) else (None)
+                        if coni is not None:
+                            current_surface.CONI = coni
 
-                        COMM = surf_line[-1]+':'+value if value else (surf_line[-1])
-                        if COMM:
-                            setattr(current_surface, 'COMM', COMM)
+                        comm = surf_line[-1]+':'+value if value else (surf_line[-1])
+                        if comm:
+                            current_surface.COMM = comm
 
                         surfaces[str(surface_i)] = current_surface
-                        
+
                         surface_i += 1
                     else:
                         break
         self.surfaces = surfaces
 
-    def extract_surface_details(self): 
+    def extract_surface_details(self):
+        """Extract detailed surface data from the prescription file."""
         surface_i = 0
         surface_nb = self.surface_nb
 
@@ -578,10 +336,10 @@ class PrescriptionDataParser:
         in_data_details_flag = False
 
         aper_type = None
-        OBDC = [0.0, 0.0]
-        APER = [0.0, 0.0]
-        PARM = []
-        XDAT = []
+        obdc = [0.0, 0.0]
+        aper = [0.0, 0.0]
+        parm = []
+        xdat = []
         is_aper = None
 
         with open(self.file_path, 'r') as file:
@@ -603,26 +361,26 @@ class PrescriptionDataParser:
                         continue
                     if not key: # meaning empty line i.e. end of a surface
                         current_surface = self.surfaces[str(surface_i)]
-                        if any(OBDC):
-                            setattr(current_surface, 'OBDC', np.array(OBDC))
+                        if any(obdc):
+                            current_surface.OBDC = np.array(obdc)
                         if aper_type is not None:
-                            setattr(current_surface, aper_type, np.array(APER))
+                            setattr(current_surface, aper_type, np.array(aper))
                         if is_aper is not None:
-                            setattr(current_surface, 'ISAP', int(is_aper))
-                        if PARM:
-                            for j in range(len(PARM)):
-                                setattr(current_surface, f'PARM{j+1}', PARM[j])
-                        if XDAT:
-                            for j in range(len(XDAT)):
-                                setattr(current_surface, f'XDAT{j+1}', XDAT[j])
+                            current_surface.ISAP = int(is_aper)
+                        if parm:
+                            for j in range(len(parm)):
+                                setattr(current_surface, f'PARM{j+1}', parm[j])
+                        if xdat:
+                            for j in range(len(xdat)):
+                                setattr(current_surface, f'XDAT{j+1}', xdat[j])
 
 
                         aper_type = None
                         is_aper = None
-                        OBDC = [0.0, 0.0]
-                        APER = [0.0, 0.0]
-                        PARM = []
-                        XDAT = []
+                        obdc = [0.0, 0.0]
+                        aper = [0.0, 0.0]
+                        parm = []
+                        xdat = []
 
                         surface_i += 1
                         continue
@@ -636,54 +394,65 @@ class PrescriptionDataParser:
                         else:
                             if key.startswith("Aperture"):
                                 ap = value.split()[0]
-                                aper_type = 'ELAP' if ap == 'Elliptical' else ('SQAP' if ap == 'Rectangular' else ('CLAP' if ap == 'Circular' else (None)))
+
+                                aperture_codes = {
+                                      "Elliptical" : "ELAP",
+                                      "Rectangular": "SQAP",
+                                      "Circular"   : "CLAP",
+                                      }
+                                aper_type = aperture_codes.get(ap)
+
                                 is_aper = value.split()[1] == 'Aperture'
                                 continue
 
                             if key.startswith("Minimum Radius"):
-                                APER[0] = float(value)
+                                aper[0] = float(value)
                                 continue
                             elif key.startswith("Maximum Radius"):
-                                APER[1] = float(value)
+                                aper[1] = float(value)
                                 continue
                             elif key.startswith("X Half Width"):
-                                APER[0] = float(value) * 2 if aper_type == 'SQAP' else (float(value))
+                                aper[0] = float(value) * 2 if aper_type == 'SQAP' else (float(value))
                                 continue
                             elif key.startswith("Y Half Width"):
-                                APER[1] = float(value) * 2 if aper_type == 'SQAP' else (float(value))
+                                aper[1] = float(value) * 2 if aper_type == 'SQAP' else (float(value))
                                 continue
 
                             if key.startswith("X- Decenter"):
-                                OBDC[0] = float(value)
+                                obdc[0] = float(value)
                                 continue
                             elif key.startswith("Y- Decenter"):
-                                OBDC[1] = float(value)
+                                obdc[1] = float(value)
 
                             if surf_type == "COORDBRK":
                                 if key.startswith("Order"):
-                                    PARM.append(0 if value == "Decenter then tilt" else (1))
+                                    parm.append(0 if value == "Decenter then tilt" else (1))
                                 else:
-                                    PARM.append(float(value))
+                                    parm.append(float(value))
                                 continue
                             elif surf_type == "EVENASPH":
                                 if key.startswith("Coefficient"):
-                                    PARM.append(float(value))
+                                    parm.append(float(value))
                                     continue
                             elif surf_type == "BICONICX":
                                 if key.startswith("X Radius") or key.startswith("X Conic"):
-                                    PARM.append(float(value))
+                                    parm.append(float(value))
                                     continue
                             elif surf_type == "SZERNSAG":
                                 if key.startswith("Coefficient") or key.startswith("Zernike Decenter"):
-                                    PARM.append(float(value))
+                                    parm.append(float(value))
                                     continue
-                                if key.startswith("Number") or key.startswith("Normalization") or key.startswith("Zernike Term"):
-                                    XDAT.append(float(value))
+                                if (key.startswith("Number")
+                                    or key.startswith("Normalization")
+                                    or key.startswith("Zernike Term")
+                                    ):
+                                    xdat.append(float(value))
                                     continue
                     else:
                         break
 
-    def extract_surface_index(self): 
+    def extract_surface_index(self):
+        """Extract and assign refractive indexes to the optical surfaces."""
         surface_i = 0
         surface_nb = self.surface_nb
 
@@ -719,13 +488,14 @@ class PrescriptionDataParser:
                         if key_parts[0].strip() in current_surface.name:
                             has_glas = hasattr(current_surface, 'GLAS')
                         if has_glas and current_surface.GLAS != 'MIRROR':
-                            index = float(key_parts[4].strip())
-                            setattr(current_surface, 'GLAS', " ".join([current_surface.GLAS, str(index)]))
+                            index = float(key_parts[4].strip()) + (air_index_ref - 1)
+                            current_surface.GLAS = " ".join([current_surface.GLAS, str(index)])
                         surface_i += 1
                     else:
                         break
 
     def extract_multi_configurations(self):
+        """Extract multiple configuration blocks from the system file."""
         configurations = {}
         current_config = None
         in_configuration = False  # Tracks if we are inside a config block
@@ -775,7 +545,7 @@ class PrescriptionDataParser:
     def entrance_pupil_diameter(self):
         """Get the extracted entrance pupil size."""
         return self.entrance_pupil_diameter
-    
+
     def exit_pupil_position(self):
         """Get the extracted exit pupil position."""
         return self.exit_pupil_position
@@ -783,7 +553,7 @@ class PrescriptionDataParser:
     def exit_pupil_diameter(self):
         """Get the extracted exit pupil diameter."""
         return self.exit_pupil_diameter
-    
+
     def surface(self, surface_name):
         """
         Retrieve a Surface object by its surface number, COMM name, or tuple key.
@@ -792,8 +562,9 @@ class PrescriptionDataParser:
             if surface_name in surface.name:
                 return surface
         raise Exception(f'{surface_name} is not among available surfaces')
-    
+
     def get_surface_num(self, surface_name):
+        """Return the surface number matching the given name."""
         for surface in self.surfaces.values():
             if surface_name in surface.name:
                 for name in surface.name:
@@ -802,9 +573,10 @@ class PrescriptionDataParser:
         raise Exception(f'{surface_name} is not among available surfaces')
 
 
-    
+
 
 class SurfaceCoordinates:
+    """Store rotation, offset, tilt, and comment data for a surface."""
     def __init__(self, rotation, offset, tilt, comment):
         self.rotation = rotation
         self.offset = offset
@@ -819,6 +591,7 @@ class SurfaceCoordinates:
                 f"  Comment: {self.comment}\n")
 
 class SurfacePRD:
+    """Container for parsed surface prescription and metadata."""
     def __init__(self, name):
         """
         Initialize a Surface object with a given name.
@@ -830,28 +603,13 @@ class SurfacePRD:
         Override attribute setting to clean up specific values like CURV, DIAM, DISZ and PARM.
         """
         super().__setattr__(key, value)
-    
+
     def __repr__(self):
         """
         Represent the Surface object with its name and attributes.
         """
         return f"Surface({self.__dict__})"
-    
+
     def items(self):
+        """Return key-value pairs of surface properties."""
         return self.__dict__.items()
-    
-    
-
-
-
-    
-
-###################
-###################
-###################
- 
-def main():
-    import numpy as np
-
-if __name__=='__main__':
-    main()

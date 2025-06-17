@@ -10,10 +10,10 @@ Date: 05/30/2025
 
 import numpy as np
 import yaml
-
-from zmx2batoid.zmx_parsers_old import PrescriptionDataParser
 from batoid.medium import ConstMedium
 from batoid.optic import Optic
+
+from zmx2batoid.zmx_parsers_old import PrescriptionDataParser
 
 ##############################
 ####  Anchor index values ####
@@ -136,55 +136,55 @@ class ZMX2YAML:
 
     Parameters
     ----------
-    PRD_FILE_NAME : str
+    prd_file_name : str
         Path to the Zemax prescription (.ZMX) file.
-    WANTED_SURF_LIST : list of str or int
+    wanted_surf_list : list of str or int
         List of surface names or indices to extract from the prescription.
-    ENPP : list of str or int, optional
-        Surface(s) used to define the entrance pupil. Defaults to the first in WANTED_SURF_LIST.
-    FIELD_BIAS : list of float, optional
+    enpp : list of str or int, optional
+        Surface(s) used to define the entrance pupil. Defaults to the first in wanted_surf_list.
+    field_bias : list of float, optional
         Field bias to apply when generating the optical system.
     """
-    def __init__(self, PRD_FILE_NAME=None, WANTED_SURF_LIST=[], ENPP=[], FIELD_BIAS=[]):
+    def __init__(self, prd_file_name=None, wanted_surf_list=None, enpp=None, field_bias=None):
         """
         Initialize the converter with a Zemax file and conversion settings.
 
         Parameters
         ----------
-        PRD_FILE_NAME : str, optional
+        prd_file_name : str, optional
             Path to the Zemax ZMX prescription file.
-        WANTED_SURF_LIST : list of str or int
+        wanted_surf_list : list of str or int
             Surface names or indices to include in the output.
-        ENPP : list of str or int, optional
+        enpp : list of str or int, optional
             Surfaces representing the entrance pupil.
-        FIELD_BIAS : list of float, optional
+        field_bias : list of float, optional
             Field bias values to apply to the parsed prescription.
         Raises
         ------
         Exception
-            If PRD_FILE_NAME or WANTED_SURF_LIST is missing.
+            If prd_file_name or wanted_surf_list is missing.
         """
-        if PRD_FILE_NAME is None:
+        if prd_file_name is None:
             raise Exception("No Prescription data file given.")
         else:
-            self.PRD_FILE_NAME = PRD_FILE_NAME
-            self.PRD_FILE = PrescriptionDataParser(PRD_FILE_NAME)
+            self.prd_file_name = prd_file_name
+            self.prd_file = PrescriptionDataParser(prd_file_name)
 
-        if not WANTED_SURF_LIST:
+        if wanted_surf_list is None:
             raise Exception("No surface given.")
         else:
-            self.WANTED_SURF_LIST = [str(x) if isinstance(x, int) else x for x in WANTED_SURF_LIST]
+            self.wanted_surf_list = [str(x) if isinstance(x, int) else x for x in wanted_surf_list]
 
-        if not ENPP:
-            self.ENPP = self.WANTED_SURF_LIST[0]
+        if enpp is None:
+            self.enpp = self.wanted_surf_list[0]
         else:
-            self.ENPP = [str(x) if isinstance(x, int) else x for x in ENPP]
+            self.enpp = [str(x) if isinstance(x, int) else x for x in enpp]
 
-        if FIELD_BIAS:
-            self.FIELD_BIAS = [str(x) if isinstance(x, int) else x for x in FIELD_BIAS]
+        if field_bias is not None:
+            self.field_bias = [str(x) if isinstance(x, int) else x for x in field_bias]
 
-        self.conv_coef = 1000 if 'Millimeters' in self.PRD_FILE.unit else (1) # Conversion to meters if not
-    
+        self.conv_coef = 1000 if 'Millimeters' in self.prd_file.unit else (1) # Conversion to meters if not
+
     def extract_asphere_coefs(self, surface: PrescriptionDataParser.surface) -> list:
         """
         Extract aspheric surface coefficients from a prescription surface and convert them.
@@ -209,7 +209,7 @@ class ZMX2YAML:
                 converted_value = value * (10 ** exponent)  # Apply conversion
                 converted_params_corrected[index - 1] = float(converted_value)
         return converted_params_corrected
-    
+
     def extract_zernike_coefs(self, surface: PrescriptionDataParser.surface) -> list:
         """
         Extract Zernike polynomial coefficients from a prescription surface.
@@ -278,14 +278,14 @@ class ZMX2YAML:
             if key not in new_b:
                 new_b[key] = b[key]
         return new_b
-        
-    def build_dict_surf(self, SURF_name: int | str) -> dict:
+
+    def build_dict_surf(self, surf_name: int | str) -> dict:
         """
         Build a surface dictionary for a specific optical surface.
 
         Parameters
         ----------
-        SURF_name : int or str
+        surf_name : int or str
             Index or name of the surface.
 
         Returns
@@ -293,24 +293,24 @@ class ZMX2YAML:
         dict
             Dictionary describing the surface parameters.
         """
-        SURF_name = str(SURF_name) if isinstance(SURF_name, int) else (SURF_name)
-        surface = self.PRD_FILE.surface(SURF_name)
+        surf_name = str(surf_name) if isinstance(surf_name, int) else (surf_name)
+        surface = self.prd_file.surface(surf_name)
         conv_coef = self.conv_coef
-        
+
         curv = surface.CURV
-        R = np.inf if not np.any(curv) else 1.0 / (curv * conv_coef)
+        r = np.inf if not np.any(curv) else 1.0 / (curv * conv_coef)
 
         # Plane case
-        if R == np.inf:
+        if np.inf == r:
             return {'type': 'Plane'}
-        
+
         conic = getattr(surface, 'CONI', 0.0)
 
         if surface.TYPE == 'STANDARD':
             shape_type = 'Paraboloid' if conic == -1 else 'Quadric'
             return {
                 'type': shape_type,
-                'R': R,
+                'R': r,
                 'conic': conic
             }
         elif surface.TYPE == 'EVENASPH':
@@ -318,39 +318,39 @@ class ZMX2YAML:
             return {
                 'type': 'Asphere',
                 'imin': 1,
-                'R': R,
+                'R': r,
                 'conic': conic,
                 'coefs': coefs
             }
         elif surface.TYPE == 'BICONICX':
-            conicY = conic
-            conicX = getattr(surface, 'PARM2', 0.0)
-            Rx = getattr(surface, 'PARM1', 0.0) / conv_coef
+            conic_y = conic
+            conic_x = getattr(surface, 'PARM2', 0.0)
+            rx = getattr(surface, 'PARM1', 0.0) / conv_coef
             return {
                 'type': 'Biconic',
-                'Ry': R,
-                'Rx': Rx,
-                'ky': conicY,
-                'kx': conicX
+                'Ry': r,
+                'Rx': rx,
+                'ky': conic_y,
+                'kx': conic_x
             }
         elif surface.TYPE == 'SZERNSAG':
             norm_rad = getattr(surface, 'XDAT2', 0.0) / self.conv_coef
             znk_coefs = self.extract_zernike_coefs(surface)
             asph_coefs = self.extract_asphere_coefs(surface)
-            surfaces = [{'type': 'Asphere', 'imin': 1, 'R': R, 'conic': conic, 'coefs': asph_coefs},
+            surfaces = [{'type': 'Asphere', 'imin': 1, 'R': r, 'conic': conic, 'coefs': asph_coefs},
                         {'type': 'Zernike', 'coef': znk_coefs, 'R_outer': norm_rad, 'R_inner': 0.}]
             return {
                 'type': 'Sum',
                 'items': surfaces
             }
 
-    def build_dict_obsc(self, SURF_name: int | str) -> dict:
+    def build_dict_obsc(self, surf_name: int | str) -> dict:
         """
         Build an obscuration dictionary for a given surface.
 
         Parameters
         ----------
-        SURF_name : int or str
+        surf_name : int or str
             Name or index of the obscured surface.
 
         Returns
@@ -358,9 +358,9 @@ class ZMX2YAML:
         dict
             Obscuration information dictionary.
         """
-        SURF_name = str(SURF_name) if isinstance(SURF_name, int) else (SURF_name)
+        surf_name = str(surf_name) if isinstance(surf_name, int) else (surf_name)
         conv_coef = self.conv_coef
-        surface = self.PRD_FILE.surface(SURF_name)
+        surface = self.prd_file.surface(surf_name)
 
         obdc = getattr(surface, 'OBDC', None)
         decents = list(map(float, obdc / conv_coef)) if obdc is not None else [0.0, 0.0]
@@ -380,23 +380,23 @@ class ZMX2YAML:
                     'type': "Clear"+shape_type if bool(is_ap) else ("Obsc"+shape_type),
                     'x': decents[0],
                     'y': decents[1],
-                    **dict(zip(keys, dims))
+                    **dict(zip(keys, dims, strict=False))
                 }
-        
+
         return {
             'type': 'ClearCircle',
             'x': decents[0],
             'y': decents[1],
             'radius': surface.DIAM / conv_coef
         }
-                
-    def build_dict_crds(self, SURF_name: int | str) -> dict:
+
+    def build_dict_crds(self, surf_name: int | str) -> dict:
         """
         Build a coordinate system dictionary for a given surface.
 
         Parameters
         ----------
-        SURF_name : int or str
+        surf_name : int or str
             Surface identifier to extract the coordinate break from.
 
         Returns
@@ -404,27 +404,30 @@ class ZMX2YAML:
         dict
             Dictionary with coordinate system changes.
         """
-        SURF_name = str(SURF_name) if isinstance(SURF_name, int) else (self.PRD_FILE.get_surface_num(SURF_name))
+        surf_name = (str(surf_name)
+                     if isinstance(surf_name, int)
+                     else self.prd_file.get_surface_num(surf_name)
+                     )
         conv_coef = self.conv_coef
 
-        rotCenter = list(map(float, self.PRD_FILE.coordinates(SURF_name).offset / conv_coef))
-        angles = list(map(float, np.deg2rad(self.PRD_FILE.coordinates(SURF_name).tilt)))
+        rot_center = list(map(float, self.prd_file.coordinates(surf_name).offset / conv_coef))
+        angles = list(map(float, np.deg2rad(self.prd_file.coordinates(surf_name).tilt)))
         return {
-            'x': rotCenter[0],
-            'y': rotCenter[1],
-            'z': rotCenter[2],
+            'x': rot_center[0],
+            'y': rot_center[1],
+            'z': rot_center[2],
             'rotX': angles[0],
             'rotY': angles[1],
             'rotZ': angles[2]
         }
-    
-    def build_dict_optc(self, SURF_name: int | str) -> dict:
+
+    def build_dict_optc(self, surf_name: int | str) -> dict:
         """
         Build an optical surface dictionary for a lens or mirror.
 
         Parameters
         ----------
-        SURF_name : int or str
+        surf_name : int or str
             Index or name of the optical surface.
 
         Returns
@@ -432,26 +435,29 @@ class ZMX2YAML:
         dict
             Dictionary representing a Batoid optical surface.
         """
-        SURF_name = str(SURF_name) if isinstance(SURF_name, int) else (SURF_name)
-        surface = self.PRD_FILE.surface(SURF_name)
+        surf_name = str(surf_name) if isinstance(surf_name, int) else (surf_name)
+        surface = self.prd_file.surface(surf_name)
 
         glas = getattr(surface, 'GLAS', None) # returns None in does not exist
         is_mirror = isinstance(glas, str) and glas.startswith('MIRROR')
         is_refact = isinstance(glas, str) and not glas.startswith('MIRROR')
-        
-        MED = AnchoredValue(self.medium(float(glas.split()[1])), str(glas.split()[0])) if is_refact else AIR
+
+        medium =(AnchoredValue(self.medium(float(glas.split()[1])), str(glas.split()[0]))
+                 if is_refact
+                 else AIR
+                 )
 
         return {
             'type': 'Mirror' if is_mirror else ('RefractiveInterface'),
-            'name': getattr(surface, 'COMM', SURF_name),
+            'name': getattr(surface, 'COMM', surf_name),
             **(
-                {'inMedium': AIR, 'outMedium': MED} if is_refact else {}
+                {'inMedium': AIR, 'outMedium': medium} if is_refact else {}
                 ),
-            'surface': self.build_dict_surf(SURF_name),
-            'obscuration': self.build_dict_obsc(SURF_name),
-            'coordSys': self.build_dict_crds(SURF_name)
+            'surface': self.build_dict_surf(surf_name),
+            'obscuration': self.build_dict_obsc(surf_name),
+            'coordSys': self.build_dict_crds(surf_name)
         }
-    
+
     def build_dict_stop(self) -> dict:
         """
         Build the dictionary representation of the system STOP surface.
@@ -463,13 +469,13 @@ class ZMX2YAML:
         """
         return {
             'type': 'Interface',
-            'name': 'ENPP',
+            'name': 'enpp',
             'surface': {
                 'type': 'Plane'
             },
-            'coordSys': self.build_dict_crds(self.ENPP[0])
+            'coordSys': self.build_dict_crds(self.enpp[0])
         }
-    
+
     def build_dict_dctr(self) -> dict:
         """
         Build the dictionary for the detector surface.
@@ -479,17 +485,17 @@ class ZMX2YAML:
         dict
             Dictionary with detector surface properties.
         """
-        last_key = next(reversed(self.PRD_FILE.surfaces))
-        SURF_name = self.PRD_FILE.surfaces[last_key].name[0]
-        surface = self.PRD_FILE.surface(SURF_name)
+        last_key = next(reversed(self.prd_file.surfaces))
+        surf_name = self.prd_file.surfaces[last_key].name[0]
+        surface = self.prd_file.surface(surf_name)
         return {
             'type': 'Detector',
-            'name': getattr(surface, 'COMM', SURF_name),
-            'surface': self.build_dict_surf(SURF_name),
-            'obscuration': self.build_dict_obsc(SURF_name),
-            'coordSys': self.build_dict_crds(SURF_name)
+            'name': getattr(surface, 'COMM', surf_name),
+            'surface': self.build_dict_surf(surf_name),
+            'obscuration': self.build_dict_obsc(surf_name),
+            'coordSys': self.build_dict_crds(surf_name)
         }
-    
+
     def build_dict_meta(self) -> dict:
         """
         Generate metadata for the entire optical system.
@@ -499,22 +505,32 @@ class ZMX2YAML:
         dict
             Dictionary containing system-level metadata (e.g., title, author).
         """
-        wavelengths = sorted(self.PRD_FILE.waves)
+        wavelengths = sorted(self.prd_file.waves)
 
         return {
             'metaData': {
-                'file': self.PRD_FILE.filename,
-                **({'margin': self.PRD_FILE.clear_semi_diam_margin} if getattr(self.PRD_FILE, 'clear_semi_diam_margin', None) is not None else {}),
-                **({'fieldBias': self.PRD_FILE.surface(self.FIELD_BIAS[0]).PARM3} if hasattr(self, 'FIELD_BIAS') else {}),
-                'exitPupilSize': self.PRD_FILE.exit_pupil_diameter / self.conv_coef,
-                'wavelengths': wavelengths,
-                'fields': self.PRD_FILE.fields,
+                'file': self.prd_file.filename,
                 **(
-                    {'Configurations': self.PRD_FILE.configurations} if self.PRD_FILE.configurations is not None else {}
-                ),
+                    {'margin': self.prd_file.clear_semi_diam_margin}
+                    if getattr(self.prd_file, 'clear_semi_diam_margin', None) is not None
+                    else {}
+                    ),
+                **(
+                    {'fieldBias': self.prd_file.surface(self.field_bias[0]).PARM3}
+                    if hasattr(self, 'field_bias')
+                    else {}
+                    ),
+                'exitPupilSize': self.prd_file.exit_pupil_diameter / self.conv_coef,
+                'wavelengths': wavelengths,
+                'fields': self.prd_file.fields,
+                **(
+                    {'Configurations': self.prd_file.configurations}
+                    if self.prd_file.configurations is not None
+                    else {}
+                    ),
             }
         }
-    
+
     def build_dict_opsy(self) -> dict:
         """
         Build the top-level optical system dictionary.
@@ -525,8 +541,8 @@ class ZMX2YAML:
             The full Batoid optical system dictionary with nested elements.
         """
         conv_coef = self.conv_coef
-        items = [self.build_dict_optc(surf) for surf in self.WANTED_SURF_LIST]
-        for i, (a, b) in enumerate(zip(items, items[1:])):
+        items = [self.build_dict_optc(surf) for surf in self.wanted_surf_list]
+        for i, (a, b) in enumerate(zip(items, items[1:], strict=False)):
             if a['type'] == 'RefractiveInterface' and b['type'] == 'RefractiveInterface':
                 b['obscuration'] = a['obscuration']
                 items[i+1] = self.insert_swapped_mediums(a, b)  # Reassign updated b
@@ -538,15 +554,15 @@ class ZMX2YAML:
                 'inMedium': AIR,
                 'outMedium': AIR,
                 'medium': AIR,
-                'backDist': self.PRD_FILE.entrance_pupil_position / conv_coef,
-                'sphereRadius': self.PRD_FILE.exit_pupil_position / conv_coef,
-                'pupilSize': self.PRD_FILE.entrance_pupil_diameter / conv_coef,
+                'backDist': self.prd_file.entrance_pupil_position / conv_coef,
+                'sphereRadius': self.prd_file.exit_pupil_position / conv_coef,
+                'pupilSize': self.prd_file.entrance_pupil_diameter / conv_coef,
                 # 'pupilObscuration': 0.0,
                 'stopSurface': self.build_dict_stop(),
                 'items': items
             }
         }
-    
+
     def build_dict_file(self) -> dict:
         """
         Compile all optical system components and metadata into one dictionary.
@@ -558,20 +574,20 @@ class ZMX2YAML:
         """
         return self.build_dict_opsy() | self.build_dict_meta()
 
-    def write_yaml(self, NAME: str) -> None:
+    def write_yaml(self, name: str) -> None:
         """
         Write the current optical system dictionary to a YAML file.
 
         Parameters
         ----------
-        NAME : str
+        name : str
             File name or path to write the YAML output to.
 
         Returns
         -------
         None
         """
-        with open(NAME+'.yaml', 'w') as f:
+        with open(name + '.yaml', 'w') as f:
             yaml.dump(
                 self.build_dict_file(),
                 f,
@@ -586,6 +602,10 @@ class ZMX2YAML:
 
 if __name__ == '__main__':
     _PATH = '/Users/pierrenicolas/Documents/UASAL/stp_batoid/Batoid4LOFT/support_data/Lazuli/STOP/'
-    _PRD_FILE_NAME = _PATH + f"Lazuli_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt"
-    
-    ZMX2YAML(PRD_FILE_NAME=_PRD_FILE_NAME, WANTED_SURF_LIST=[7, 8, 9, 11], ENPP=[3], FIELD_BIAS=[5]).write_yaml(f'LAZULI STOP')
+    _PRD_FILE_NAME = _PATH + "Lazuli_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt"
+
+    ZMX2YAML(
+        prd_file_name=_PRD_FILE_NAME,
+        wanted_surf_list=[7, 8, 9, 11],
+        enpp=[3], field_bias=[5]
+        ).write_yaml('LAZULI STOP')

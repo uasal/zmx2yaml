@@ -7,6 +7,7 @@ import yaml
 
 
 class Surface:
+    """Represents an optical surface."""
     def __init__(self, name):
         """
         Initialize a Surface object with a given name.
@@ -53,8 +54,8 @@ class Surface:
             param_index = int(parts[0])  # Extract the PARM index
             param_value = float(parts[1])  # Extract the PARM value
             return param_index, param_value
-        except (ValueError, IndexError):
-            raise ValueError(f"Invalid PARM format: {value}")
+        except (ValueError, IndexError) as err:
+            raise ValueError(f"Invalid PARM format: {value}") from err
 
     @staticmethod
     def _parse_aper(value):
@@ -64,8 +65,8 @@ class Surface:
         try:
             parts = value.split()[:-1]
             return np.array(parts, dtype=float)
-        except (ValueError, IndexError):
-            raise ValueError(f"Invalid APER format: {value}")
+        except (ValueError, IndexError) as err:
+            raise ValueError(f"Invalid APER format: {value}") from err
 
     @staticmethod
     def _parse_obsc(value):
@@ -75,8 +76,8 @@ class Surface:
         try:
             parts = value.split()
             return np.array(parts, dtype=float)
-        except (ValueError, IndexError):
-            raise ValueError(f"Invalid APER format: {value}")
+        except (ValueError, IndexError) as err:
+            raise ValueError(f"Invalid APER format: {value}") from err
 
     def __repr__(self):
         """
@@ -90,10 +91,12 @@ class Surface:
     #     raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def items(self):
+        """Return an iterable view of (key, value) pairs, like dict.items()."""
         return self.__dict__.items()
 
 
 class SystemDetails:
+    """Container for optical system metadata and parameters."""
     def __init__(self):
         """
         Initialize the SystemDetails object with default attributes.
@@ -114,6 +117,7 @@ class SystemDetails:
 
 
 class ZemaxFileParser:
+    """Parser for Zemax .ZMX files, extracting system information."""
     def __init__(self, file_path, encoding="utf-16"):
         """
         Initialize the parser with the path to the Zemax .zmx file.
@@ -138,7 +142,7 @@ class ZemaxFileParser:
         self.identify_stop_surface()
         self.parse_system_details()
 
-        FLDS = list(
+        FLDS = list(# noqa: N806
             map(
                 lambda coord: list(coord),
                 zip(self.system_details.XFLD, self.system_details.YFLD, strict=False),
@@ -238,7 +242,7 @@ class ZemaxFileParser:
             elif line.startswith("WAVM"):  # Wavelengths
                 self.system_details.WAVM.append(line.split(" ", 1)[-1])
             elif line.startswith("FEFD"):  # Other Fields
-                dummyLine = line.split(" ", 1)[-1].split()
+                dummyLine = line.split(" ", 1)[-1].split() # noqa: N806
                 self.system_details.FEFD.append(list(map(float, dummyLine[:2])))
             elif line.startswith("XFLN"):  # Fields X
                 self.system_details.XFLD = list(map(float, line.split(" ", 1)[-1].split()))
@@ -277,6 +281,7 @@ class ZemaxFileParser:
 
 
 class PrescriptionDataParser:
+    """Parses optical prescription data files to extract relevant parameters."""
     def __init__(self, file_path):
         self.file_path = file_path
         self.surface_data = {}
@@ -410,6 +415,7 @@ class PrescriptionDataParser:
 
 
 class SurfacePrescriptionData:
+    """Holds geometric and descriptive data for a single optical surface."""
     def __init__(self, rotation, offset, tilt, comment):
         self.rotation = rotation
         self.offset = offset
@@ -436,7 +442,7 @@ def build_yaml_file(input_file, output_file=None, encoding="utf-16"):
     details = telescope.system_details
     for key in vars(details):
         # Convert numpy arrays to lists to enable writing to YAML
-        if type(vars(details)[key]) == np.ndarray:
+        if isinstance(vars(details)[key], np.ndarray):
             vars(details)[key] = (vars(details)[key]).tolist()
 
         data[key] = vars(details)[key]
@@ -449,7 +455,7 @@ def build_yaml_file(input_file, output_file=None, encoding="utf-16"):
         # and check for YAML issues
         for key in vars(telescope.surfaces[surf[0]]):
             # Convert numpy arrays to lists
-            if type(vars(telescope.surfaces[surf[0]])[key]) == np.ndarray:
+            if isinstance(vars(telescope.surfaces[surf[0]])[key], np.ndarray):
                 vars(telescope.surfaces[surf[0]])[key] = (vars(telescope.surfaces[surf[0]])[key]).tolist()
 
         data[f"surface_{i}"] = vars(telescope.surfaces[surf[0]])
