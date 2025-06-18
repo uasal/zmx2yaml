@@ -2,7 +2,7 @@ import pathlib
 
 import pytest
 
-from zmx2batoid.zmx_parsers_old import PrescriptionDataParser, ZemaxFileParser
+from zmx2batoid.zmx_parsers import PrescriptionDataParser, ZemaxFileParser
 
 TEST_SUPPORT_DATA_DIR = pathlib.Path(__file__).parents[1].joinpath("test_data")
 

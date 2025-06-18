@@ -5,7 +5,7 @@ import yaml
 
 PATH = os.path.dirname(__file__)
 
-from zmx2batoid.zmx_parsers_old import PrescriptionDataParser, ZemaxFileParser
+from zmx2batoid.zmx_parsers import PrescriptionDataParser, ZemaxFileParser
 
 
 class AnchoredValue:

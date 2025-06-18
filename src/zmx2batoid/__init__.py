@@ -1,4 +1,4 @@
-from .zmx2yaml import ZMX2YAML
-from .zmx_parsers import PrescriptionDataParser
+from .zmx2batoid import ZMX2YAML
+from .zmx_parsers import PrescriptionDataParser, ZemaxFileParser
 
-__all__ = ["ZMX2YAML", "PrescriptionDataParser"]
+__all__ = ["ZMX2YAML", "ZemaxFileParser", "PrescriptionDataParser"]
