@@ -1,7 +1,14 @@
+"""
+ZMX Prescription Data Parser
+
+This module parses Zemax's prescription files.
+
+Author: Pierre Raphaël Nicolas
+Date: 06/18/2025
+"""
+
 import os
-
 import numpy as np
-
 
 class PrescriptionDataParser:
     """Parses optical prescription data files to extract relevant parameters."""
@@ -12,7 +19,9 @@ class PrescriptionDataParser:
         self.entrance_pupil_diameter = None
         self.exit_pupil_position = None
         self.exit_pupil_diameter = None
-        self.extract_matrices()  # Automatically extract upon initialization
+
+        self.extract_matrices() 
+
         self.extract_pupils()
 
         self.configurations = None
@@ -46,7 +55,8 @@ class PrescriptionDataParser:
         lines_iter = iter(lines)
         for line in lines_iter:
             stripped_line = line.lstrip().split()  # Handle lines with leading spaces
-            if (len(stripped_line) >= 6
+            if (
+                len(stripped_line) >= 6
                 and stripped_line[0].isdigit()
                 and self._is_numeric_list(stripped_line[1:6])
                 ):
@@ -64,7 +74,8 @@ class PrescriptionDataParser:
                     self.surface_coordinates[surface_num] = SurfaceCoordinates(None, None, None, comment)
                     continue
 
-                if (len(line2) >= 5
+                if (
+                    len(line2) >= 5
                     and len(line3) >= 5
                     and self._is_numeric_list(line2[:5])
                     and self._is_numeric_list(line3[:5])
@@ -176,21 +187,21 @@ class PrescriptionDataParser:
         with open(self.file_path, 'r') as file:
             lines = file.readlines()
 
-            field_i = 1
-            offset_i = 1
-            field_flag = False
+            field_i    = 1     # count fields
+            offset_i   = 1     # count lines to ignore
+            field_flag = False # flag for field's section
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key = parts[0].strip()
+                key   = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if "Fields" in key:
                     field_flag = True
-                    nb_fields = int(value)
+                    nb_fields = int(value) # total number of fields
                     continue
                 if field_flag:
                     if offset_i <= 2:
@@ -212,22 +223,22 @@ class PrescriptionDataParser:
         with open(self.file_path, 'r') as file:
             lines = file.readlines()
 
-            units = None
-            wave_i = 1
-            offset_i = 1
-            waves_flag = False
+            units      = None
+            wave_i     = 1     # count waves
+            offset_i   = 1     # count lines to ignore
+            waves_flag = False # flag for wave's section
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key = parts[0].strip()
+                key   = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if key == 'Wavelengths':
                     waves_flag = True
-                    nb_fields = int(value)
+                    nb_waves  = int(value) # total number of waves
                     continue
                 if waves_flag:
                     if "Units" in key:
@@ -235,13 +246,13 @@ class PrescriptionDataParser:
                     if offset_i <= 2:
                         offset_i += 1
                         continue
-                    elif wave_i <= nb_fields:
+                    elif wave_i <= nb_waves:
                         key_parts = key.split()
                         waves.append(float(key_parts[1]))
                         wave_i += 1
                         continue
                     else:
-                        waves = [w * 1e-6 for w in waves] if units == '?m' else (waves)
+                        waves = [w * 1e-6 for w in waves] if units == '?m' else (waves) # '?m' means 'µm'
                         break
         self.waves = waves
 
@@ -257,13 +268,13 @@ class PrescriptionDataParser:
                     return True  # it's a float
             return False
 
-        surfaces = {}
-        surface_i = 0
-        surface_nb = self.surface_nb
+        surfaces   = {}
+        surface_i  = 0               # count surfaces
+        surface_nb = self.surface_nb # total number of surfaces
 
-        offset_i = 1
+        offset_i = 1                 # count lines to ignore
 
-        in_data_summary_flag = False
+        in_data_summary_flag = False # flag for surface's section
 
         with open(self.file_path, 'r') as file:
             lines = file.readlines()
@@ -274,7 +285,7 @@ class PrescriptionDataParser:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key = parts[0].strip()
+                key   = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if key.startswith("SURFACE DATA SUMMARY"):
@@ -328,19 +339,19 @@ class PrescriptionDataParser:
 
     def extract_surface_details(self):
         """Extract detailed surface data from the prescription file."""
-        surface_i = 0
-        surface_nb = self.surface_nb
+        surface_i  = 0               # count surfaces
+        surface_nb = self.surface_nb # total number of surfaces
 
-        offset_i = 1
+        offset_i = 1                 # count lines to ignore
 
-        in_data_details_flag = False
+        in_data_details_flag = False # flag for surface details' section
 
         aper_type = None
-        obdc = [0.0, 0.0]
-        aper = [0.0, 0.0]
-        parm = []
-        xdat = []
-        is_aper = None
+        is_aper   = None
+        obdc = [0.0, 0.0] # aperture decenter
+        aper = [0.0, 0.0] # aperture size
+        parm = []         # parameters 
+        xdat = []         # additional parameters
 
         with open(self.file_path, 'r') as file:
             lines = file.readlines()
@@ -349,7 +360,7 @@ class PrescriptionDataParser:
                 line = line.strip()
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key = parts[0].strip()
+                key   = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if key.startswith("SURFACE DATA DETAIL"):
@@ -376,7 +387,7 @@ class PrescriptionDataParser:
 
 
                         aper_type = None
-                        is_aper = None
+                        is_aper   = None
                         obdc = [0.0, 0.0]
                         aper = [0.0, 0.0]
                         parm = []
@@ -442,7 +453,8 @@ class PrescriptionDataParser:
                                 if key.startswith("Coefficient") or key.startswith("Zernike Decenter"):
                                     parm.append(float(value))
                                     continue
-                                if (key.startswith("Number")
+                                if (
+                                    key.startswith("Number")
                                     or key.startswith("Normalization")
                                     or key.startswith("Zernike Term")
                                     ):
@@ -453,13 +465,13 @@ class PrescriptionDataParser:
 
     def extract_surface_index(self):
         """Extract and assign refractive indexes to the optical surfaces."""
-        surface_i = 0
-        surface_nb = self.surface_nb
+        surface_i  = 0               # count surfaces
+        surface_nb = self.surface_nb # total number of surfaces
 
-        offset_i = 1
+        offset_i = 1                 # count lines to ignore
 
-        in_index_flag = False
-        has_glas = False
+        in_index_flag = False        # flag for index's section
+        has_glas      = False
 
         with open(self.file_path, 'r') as file:
             lines = file.readlines()
@@ -470,7 +482,7 @@ class PrescriptionDataParser:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key = parts[0].strip()
+                key   = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if key.startswith("INDEX OF REFRACTION DATA"):
@@ -488,6 +500,7 @@ class PrescriptionDataParser:
                         if key_parts[0].strip() in current_surface.name:
                             has_glas = hasattr(current_surface, 'GLAS')
                         if has_glas and current_surface.GLAS != 'MIRROR':
+                            # index is referred to air index
                             index = float(key_parts[4].strip()) + (air_index_ref - 1)
                             current_surface.GLAS = " ".join([current_surface.GLAS, str(index)])
                         surface_i += 1
@@ -498,7 +511,7 @@ class PrescriptionDataParser:
         """Extract multiple configuration blocks from the system file."""
         configurations = {}
         current_config = None
-        in_configuration = False  # Tracks if we are inside a config block
+        in_configuration = False  # flag for configuration's section
 
         with open(self.file_path, 'r') as file:
             lines = file.readlines()
@@ -509,20 +522,28 @@ class PrescriptionDataParser:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key = parts[0].strip()
+                key   = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 key_parts = key.split()
 
                 # Detect new configuration block
-                if len(key_parts) == 2 and key_parts[0] == "Configuration" and key_parts[1].isdigit():
+                if (
+                    len(key_parts) == 2
+                    and key_parts[0] == "Configuration"
+                    and key_parts[1].isdigit()
+                    ):
                     current_config = f"Configuration {key_parts[1]}"
                     configurations[current_config] = {}
                     in_configuration = True
                     continue
 
                 # Stop reading if we reach a new section
-                if key.startswith("SOLVE AND VARIABLE DATA") or key.startswith("END") or "DATA" in key:
+                if (
+                    key.startswith("SOLVE AND VARIABLE DATA")
+                    or key.startswith("END")
+                    or "DATA" in key
+                    ):
                     in_configuration = False
                     continue
 
@@ -579,9 +600,9 @@ class SurfaceCoordinates:
     """Store rotation, offset, tilt, and comment data for a surface."""
     def __init__(self, rotation, offset, tilt, comment):
         self.rotation = rotation
-        self.offset = offset
-        self.tilt = tilt
-        self.comment = comment
+        self.offset   = offset
+        self.tilt     = tilt
+        self.comment  = comment
 
     def __repr__(self):
         return (f"SurfaceCoordinates(\n"
