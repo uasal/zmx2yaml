@@ -29,24 +29,22 @@ def main():
 
     Script that creates YAML file from Zemax prescription data TXT file.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
+    arg1 : str
+        Path to the input file.
 
-    arg1: str
-        Input file.
+    arg2 : list of int or str
+        Surface numbers to be modeled (excluding the IMA surface).
 
-    arg2: list
-        Surface numbers to be modeled (w/o IMA surface).
+    arg3 : str
+        Path to the output file.
 
-    arg3: list, optional
-        Entrance pupil surface number.
+    arg4 : list of int or str, optional
+        Surface numbers representing the entrance pupil.  Default is an empty list.
 
-    arg4: list, optional
-        Field bias surface number.
-    
-    arg5: str
-        Output file name.
-
+    arg5 : list of int or str, optional
+        Surface numbers representing the field bias.  Default is an empty list.
 
     Output:
     -------
