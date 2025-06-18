@@ -14,14 +14,14 @@ class PrescriptionDataParser:
     """Parses optical prescription data files to extract relevant parameters."""
     def __init__(self, file_path):
         self.file_path = file_path
-        self.surface_coordinates = {}
-        self.entrance_pupil_position = None
-        self.entrance_pupil_diameter = None
-        self.exit_pupil_position = None
-        self.exit_pupil_diameter = None
 
+        self.surface_coordinates = {}
         self.extract_matrices() 
 
+        self.entrance_pupil_position = None
+        self.entrance_pupil_diameter = None
+        self.exit_pupil_position     = None
+        self.exit_pupil_diameter     = None
         self.extract_pupils()
 
         self.configurations = None

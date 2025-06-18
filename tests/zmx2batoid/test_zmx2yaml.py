@@ -27,12 +27,11 @@ def test_ZMX2YAML():
     ).write_yaml(output_file)
 
     # Now read in the file and make sure proper values exist.
-    # FIXME: Need to verify absolute coordinates here as well
 
     with open(output_file, "r") as file:
         data = yaml.safe_load(file)
 
-    # check M1
+    # check M1 requirements
     opt = data["opticalSystem"]["items"][0]
     assert opt["name"] == "3000mm CA dia. M1"
     curv = -1.067098742061318935E-04
@@ -44,7 +43,7 @@ def test_ZMX2YAML():
     assert opt["obscuration"]["outer"] == pytest.approx(answer[1])
     assert opt["obscuration"]["y"]     == pytest.approx(1900 / 1e3)
 
-    # check M2
+    # check M2 requirements
     opt = data["opticalSystem"]["items"][1]
     assert opt["name"] == "220mm CA dia. M2"
     curv = -1.486343507359631951E-03
@@ -56,7 +55,7 @@ def test_ZMX2YAML():
     assert opt["obscuration"]["outer"] == pytest.approx(answer[1])
     assert opt["obscuration"]["y"]     == pytest.approx(115 / 1e3)
 
-    # check M3
+    # check M3 requirements
     opt = data["opticalSystem"]["items"][2]
     assert opt["name"] == "380X220mm CA M3"
     curv = -1.355209620642092421E-03
@@ -68,7 +67,7 @@ def test_ZMX2YAML():
     assert opt["obscuration"]["height"] == pytest.approx(answer[1])
     assert opt["obscuration"]["y"]      == pytest.approx(15 / 1e3)
 
-    # check M4
+    # check M4 requirements
     opt = data["opticalSystem"]["items"][3]
     assert opt["name"] == "110X80mm CA dia. M4 Flat"
     assert opt["coordSys"]["z"]    == pytest.approx(-3.498751953E+03 / 1e3)
@@ -78,7 +77,7 @@ def test_ZMX2YAML():
     assert opt["obscuration"]["semi_minor"] == pytest.approx(answer[1])
     assert opt["obscuration"]["y"]          == pytest.approx(-42 / 1e3)
 
-    # check Flat Detector
+    # check Flat Detector requirements
     opt = data["opticalSystem"]["items"][4]
     assert opt["name"] == "420 x 180mm Flat Detector"
     assert opt["coordSys"]["y"]    == pytest.approx(-1.605042168E+02 / 1e3)
