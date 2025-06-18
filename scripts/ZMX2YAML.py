@@ -25,7 +25,7 @@ def main():
 
     Examples
     --------
-    >>> python ZMX2YAML.py STP [7, 8, 9, 11] [3] [5] STP
+    >>> python ZMX2YAML.py STP.txt 7 8 9 11 STP --enpp 3 --field_bias 5
 
     Script that creates YAML file from Zemax prescription data TXT file.
 
