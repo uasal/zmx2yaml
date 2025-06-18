@@ -39,6 +39,10 @@ def test_ZMX2YAML():
     assert opt["surface"]["R"]     == pytest.approx(1 / curv / 1e3)
     assert opt["surface"]["conic"] == pytest.approx(-0.99385364904129125)
     assert opt["coordSys"]["z"] == pytest.approx(0.000000000E+00 / 1e3)
+    answer = np.array([0, 1500.1]) / 1e3
+    assert opt["obscuration"]["inner"] == pytest.approx(answer[0])
+    assert opt["obscuration"]["outer"] == pytest.approx(answer[1])
+    assert opt["obscuration"]["y"]     == pytest.approx(1900 / 1e3)
 
     # check M2
     opt = data["opticalSystem"]["items"][1]
@@ -47,6 +51,10 @@ def test_ZMX2YAML():
     assert opt["surface"]["R"]     == pytest.approx(1 / curv / 1e3)
     assert opt["surface"]["conic"] == pytest.approx(-2.7600798790182837)
     assert opt["coordSys"]["z"] == pytest.approx(-4.440000000E+03 / 1e3)
+    answer = np.array([0, 110]) / 1e3
+    assert opt["obscuration"]["inner"] == pytest.approx(answer[0])
+    assert opt["obscuration"]["outer"] == pytest.approx(answer[1])
+    assert opt["obscuration"]["y"]     == pytest.approx(115 / 1e3)
 
     # check M3
     opt = data["opticalSystem"]["items"][2]
@@ -65,6 +73,10 @@ def test_ZMX2YAML():
     assert opt["name"] == "110X80mm CA dia. M4 Flat"
     assert opt["coordSys"]["z"]    == pytest.approx(-3.498751953E+03 / 1e3)
     assert opt["coordSys"]["rotX"] == pytest.approx(np.deg2rad(6.000000000E+00))
+    answer = np.array([55, 40]) / 1e3
+    assert opt["obscuration"]["semi_major"] == pytest.approx(answer[0])
+    assert opt["obscuration"]["semi_minor"] == pytest.approx(answer[1])
+    assert opt["obscuration"]["y"]          == pytest.approx(-42 / 1e3)
 
     # check Flat Detector
     opt = data["opticalSystem"]["items"][4]
@@ -72,6 +84,10 @@ def test_ZMX2YAML():
     assert opt["coordSys"]["y"]    == pytest.approx(-1.605042168E+02 / 1e3)
     assert opt["coordSys"]["z"]    == pytest.approx(-2.743638982E+03 / 1e3)
     assert opt["coordSys"]["rotX"] == pytest.approx(np.deg2rad(1.200000000E+01))
+    answer = np.array([210, 90]) * 2 / 1e3
+    assert opt["obscuration"]["width"]  == pytest.approx(answer[0])
+    assert opt["obscuration"]["height"] == pytest.approx(answer[1])
+    assert opt["obscuration"]["y"]      == pytest.approx(-120 / 1e3)
 
 if __name__=='__main__':
     test_ZMX2YAML()
