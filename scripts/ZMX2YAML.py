@@ -108,6 +108,8 @@ def main():
         enpp=enpp,
         field_bias=field_bias
         ).write_yaml(yaml_file_name)
+    
+    logger.info(f"File created: {yaml_file_name}.yaml")
 
 
 def parse_intable_list(values):
