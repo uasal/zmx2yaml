@@ -61,7 +61,7 @@ def main():
     )
     parser.add_argument(
         "wanted_surf_list",
-        nargs='+',
+        nargs='+', # One or more arguments (required)
         help="List of surface numbers to be modeled (w/o IMA surface). Space-separated. Could be list of int or str.",
     )
     parser.add_argument(
@@ -71,13 +71,13 @@ def main():
     )
     parser.add_argument(
         "--enpp",
-        nargs='*',
+        nargs='*', # Zero or more arguments (optional)
         default=[],
         help="Optional list of entrance pupil surface numbers. Space-separated list of int or str.",
     )
     parser.add_argument(
         "--field_bias",
-        nargs='*',
+        nargs='*', # Zero or more arguments (optional)
         default=[],
         help="Optional list of field bias surface numbers. Space-separated list of int or str.",
     )
