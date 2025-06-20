@@ -1,3 +1,13 @@
+"""
+Unit tests for the ZMX2YAML conversion functionality.
+
+This module tests the conversion of a Zemax prescription data file to a YAML description
+using the ZMX2YAML class.
+
+Tested features:
+- Correct parsing and conversion of optical surfaces (M1, M2, M3, M4, Detector)
+- Validation of key parameters in the output YAML file
+"""
 import pathlib
 import sys
 
@@ -5,6 +15,7 @@ import numpy as np
 import pytest
 import yaml
 
+# Add src to sys.path for local import compatibility
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / 'src'))
 
 from zmx2batoid import ZMX2YAML
@@ -16,7 +27,19 @@ TEST_FILE_PRD = TEST_SUPPORT_DATA_DIR.joinpath(
 )
 
 
-def test_ZMX2YAML():
+def test_zmx2yaml():
+    """
+    Test the ZMX2YAML conversion from Zemax prescription data to YAML.
+
+    This test checks that the output YAML file contains the correct values for each optical
+    surface (M1, M2, M3, M4, Detector).
+    It validates the following for each surface:
+        - Name
+        - Surface radius (R)
+        - Conic constant
+        - Coordinate system (z, rotX, y)
+        - Obscuration parameters (inner, outer, width, height, semi_major, semi_minor, y)
+    """
     output_file = TEST_SUPPORT_DATA_DIR.joinpath("test_output_description.yaml")
     # pull surfaces that correspond to M1, M2, M3, M4.
     ZMX2YAML(
@@ -88,5 +111,5 @@ def test_ZMX2YAML():
     assert opt["obscuration"]["height"] == pytest.approx(answer[1])
     assert opt["obscuration"]["y"]      == pytest.approx(-120 / 1e3)
 
-if __name__=='__main__':
-    test_ZMX2YAML()
+if __name__ == '__main__':
+    pytest.main([__file__])

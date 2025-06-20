@@ -62,7 +62,10 @@ def main():
     parser.add_argument(
         "wanted_surf_list",
         nargs='+', # One or more arguments (required)
-        help="List of surface numbers to be modeled (w/o IMA surface). Space-separated. Could be list of int or str.",
+        help=(
+            "List of surface numbers to be modeled (w/o IMA surface). "
+            "Space-separated. Could be list of int or str."
+        ),
     )
     parser.add_argument(
         "yaml_file_name",
@@ -85,17 +88,17 @@ def main():
     args = parser.parse_args()
 
     logger.info(f"{args=}")
-    
+
     supported_types = ["txt"]
     file_ext = Path(args.prd_file_name).suffix.lower().lstrip(".")
     if file_ext not in supported_types:
         raise OSError(f"File type of {file_ext} is not supported. Must be one of: {supported_types}.")
-    
-    if isinstance(args.yaml_file_name, str) or isinstance(args.yaml_file_name, Path):
+
+    if isinstance(args.yaml_file_name, str | Path):
         yaml_file_name = str(args.yaml_file_name)
     else:
         raise OSError(f"File name {args.yaml_file_name} is not supported.")
-    
+
     wanted_surf_list = parse_intable_list(args.wanted_surf_list)
     enpp = parse_intable_list(args.enpp)
     field_bias = parse_intable_list(args.field_bias)
@@ -108,17 +111,40 @@ def main():
         enpp=enpp,
         field_bias=field_bias
         ).write_yaml(yaml_file_name)
-    
+
     logger.info(f"File created: {yaml_file_name}.yaml")
 
 
 def parse_intable_list(values):
+    """
+    Convert a list of values to a list of integers.
+
+    This function attempts to convert each element in the input list to an integer.
+    If any value cannot be converted, a ValueError is raised.
+
+    Parameters
+    ----------
+    values : list of str or int
+        List of values to be converted to integers.
+
+    Returns
+    -------
+    list of int
+        List of integers converted from the input values.
+
+    Raises
+    ------
+    ValueError
+        If any value in the list cannot be converted to an integer.
+    """
     result = []
     for v in values:
         try:
             result.append(int(v))
-        except ValueError:
-            raise ValueError(f"Value '{v}' is not an integer or a string representing an integer.")
+        except ValueError as err:
+            raise ValueError(
+                f"Value '{v}' is not an integer or a string representing an integer."
+            ) from err
     return result
 
 
