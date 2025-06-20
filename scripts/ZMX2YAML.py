@@ -25,7 +25,7 @@ def main():
 
     Examples
     --------
-    >>> python ZMX2YAML.py STP.txt 7 8 9 11 STP --enpp 3 --field_bias 5
+    >>> python ZMX2YAML.py STP.txt 7 8 9 11 STP.yaml --enpp 3 --field_bias 5
 
     Script that creates YAML file from Zemax prescription data TXT file.
 
@@ -87,7 +87,7 @@ def main():
 
     args = parser.parse_args()
 
-    logger.info(f"{args=}")
+    logger.info(f"{args = }")
 
     supported_types = ["txt"]
     file_ext = Path(args.prd_file_name).suffix.lower().lstrip(".")
@@ -103,7 +103,7 @@ def main():
     enpp = parse_intable_list(args.enpp)
     field_bias = parse_intable_list(args.field_bias)
 
-    logger.info(f"Processing file: {args.prd_file_name}")
+    logger.debug(f"Processing file: {args.prd_file_name}")
 
     ZMX2YAML(
         prd_file_name=args.prd_file_name,
@@ -112,7 +112,7 @@ def main():
         field_bias=field_bias
         ).write_yaml(yaml_file_name)
 
-    logger.info(f"File created: {yaml_file_name}.yaml")
+    logger.info(f"File created: {yaml_file_name}")
 
 
 def parse_intable_list(values):
