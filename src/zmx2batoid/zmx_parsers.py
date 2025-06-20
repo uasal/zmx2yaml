@@ -8,7 +8,9 @@ Date: 06/18/2025
 """
 
 import os
+
 import numpy as np
+
 
 class PrescriptionDataParser:
     """Parses optical prescription data files to extract relevant parameters."""
@@ -16,7 +18,7 @@ class PrescriptionDataParser:
         self.file_path = file_path
 
         self.surface_coordinates = {}
-        self.extract_matrices() 
+        self.extract_matrices()
 
         self.entrance_pupil_position = None
         self.entrance_pupil_diameter = None
@@ -350,7 +352,7 @@ class PrescriptionDataParser:
         is_aper   = None
         obdc = [0.0, 0.0] # aperture decenter
         aper = [0.0, 0.0] # aperture size
-        parm = []         # parameters 
+        parm = []         # parameters
         xdat = []         # additional parameters
 
         with open(self.file_path, 'r') as file:
