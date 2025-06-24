@@ -7,16 +7,31 @@ suitable for use with Batoid optics simulations.
 Author: Pierre Raphaël Nicolas
 Date: 05/30/2025
 """
-
-import sys
-from pathlib import Path
+from __future__ import annotations
+from typing import TYPE_CHECKING
 
 import numpy as np
 import yaml
-from batoid.medium import ConstMedium
-from batoid.optic import Optic
 
 from zmx2batoid.zmx_parsers import PrescriptionDataParser
+
+if TYPE_CHECKING:
+    from batoid.optic import Optic
+    from batoid.medium import ConstMedium
+else:
+    class Optic(dict):
+        """Placeholder for Optic type for runtime when batoid is not installed."""
+        pass
+    class ConstMedium:
+        """Minimal ConstMedium for runtime when batoid is not installed."""
+        def __init__(self, n):
+            self.n = n
+        def __eq__(self, rhs):
+            return isinstance(rhs, ConstMedium) and self.n == rhs.n
+        def __hash__(self):
+            return hash(("ConstMedium", self.n))
+        def __repr__(self):
+            return f"ConstMedium({self.n})"
 
 ##############################
 ####  Anchor index values ####
