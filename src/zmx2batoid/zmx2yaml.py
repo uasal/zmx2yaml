@@ -8,17 +8,16 @@ Author: Pierre Raphaël Nicolas
 Date: 05/30/2025
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING
 
 import numpy as np
 import yaml
 
 from zmx2batoid.zmx_parsers import PrescriptionDataParser
 
-if TYPE_CHECKING:
+try:
     from batoid.optic import Optic
     from batoid.medium import ConstMedium
-else:
+except:
     class Optic(dict):
         """Placeholder for Optic type for runtime when batoid is not installed."""
         pass
