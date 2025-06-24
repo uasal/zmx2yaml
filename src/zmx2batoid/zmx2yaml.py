@@ -16,9 +16,7 @@ import yaml
 from batoid.medium import ConstMedium
 from batoid.optic import Optic
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from zmx2batoid.zmx_parsers import PrescriptionDataParser  # type: ignore
+from zmx2batoid.zmx_parsers import PrescriptionDataParser
 
 ##############################
 ####  Anchor index values ####

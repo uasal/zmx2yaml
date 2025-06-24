@@ -5,7 +5,6 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'src'))
 from zmx2batoid import ZMX2YAML
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ def main():
 
     Examples
     --------
-    >>> python ZMX2YAML.py STP.txt 7 8 9 11 STP.yaml --enpp 3 --field_bias 5
+    >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Ultramarine_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt 7 8 9 11 tests/test_data/STP.yaml --enpp 3 --field_bias 5
 
     Script that creates YAML file from Zemax prescription data TXT file.
 
