@@ -15,9 +15,6 @@ import numpy as np
 import pytest
 import yaml
 
-# Add src to sys.path for local import compatibility
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / 'src'))
-
 from zmx2batoid import ZMX2YAML
 
 TEST_SUPPORT_DATA_DIR = pathlib.Path(__file__).parents[1].joinpath("test_data")
