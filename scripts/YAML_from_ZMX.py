@@ -21,7 +21,7 @@ def main():
 
     From the command line run the following to see the description and parameter descriptions.
 
-    "python scripts/YAML_from_ZMX.py -h:
+    "python3 scripts/YAML_from_ZMX.py -h:
     """
 
     logger.debug("Starting ZMX2YAML script...")

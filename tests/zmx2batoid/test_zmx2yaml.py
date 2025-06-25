@@ -41,7 +41,7 @@ def test_zmx2yaml():
     # pull surfaces that correspond to M1, M2, M3, M4.
     ZMX2YAML(
         prd_file_name=TEST_FILE_PRD, wanted_surf_list=[7, 8, 9, 11], enpp=[3], field_bias=[5]
-    ).write_yaml(output_file)
+    ).write_yaml(str(output_file))
 
     # Now read in the file and make sure proper values exist.
 
