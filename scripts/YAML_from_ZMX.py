@@ -12,55 +12,45 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - L%(lineno)s - %(levelnam
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
-logger.setLevel("DEBUG")
+logger.setLevel("INFO")
 
 
 def main():
     """
     This script is used to create YAML file from Zemax prescription data.
 
-    It should be run from the version directory level, meaning the mapping
-    file will be at the same level.
+    From the command line run the following to see the description and parameter descriptions.
 
-    Examples
-    --------
-    >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Ultramarine_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt 7 8 9 11 tests/test_data/STP.yaml --enpp 3 --field_bias 5
-
-    Script that creates YAML file from Zemax prescription data TXT file.
-
-    Parameters
-    ----------
-    arg1 : str
-        Path to the input file.
-
-    arg2 : list of int or str
-        Surface numbers to be modeled (excluding the IMA surface).
-
-    arg3 : str
-        Path to the output file.
-
-    arg4 : list of int or str, optional
-        Surface numbers representing the entrance pupil.  Default is an empty list.
-
-    arg5 : list of int or str, optional
-        Surface numbers representing the field bias.  Default is an empty list.
-
-    Output:
-    -------
+    "python scripts/YAML_from_ZMX.py -h:
     """
 
     logger.debug("Starting ZMX2YAML script...")
 
-    parser = argparse.ArgumentParser()
+    description = """
+    This script is used to create YAML file from Zemax prescription data.\n
+
+    It should be run from the version directory level, meaning the mapping
+    file will be at the same level.\n
+
+    Examples
+    --------
+    >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Ultramarine_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt 
+    7 8 9 11 tests/test_data/STP.yaml --enpp 3 --field_bias 5
+
+    Script that creates YAML file from Zemax prescription data TXT file.
+    """
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
     parser.add_argument(
         "prd_file_name",
         type=str,
-        help="Name of input file. Only .txt files are supported",
+        help="Path of input file. Only .txt files are supported",
     )
     parser.add_argument(
         "wanted_surf_list",
-        nargs='+', # One or more arguments (required)
+        nargs="+",  # One or more arguments (required)
         help=(
             "List of surface numbers to be modeled (w/o IMA surface). "
             "Space-separated. Could be list of int or str."
@@ -73,13 +63,13 @@ def main():
     )
     parser.add_argument(
         "--enpp",
-        nargs='*', # Zero or more arguments (optional)
+        nargs="*",  # Zero or more arguments (optional)
         default=[],
         help="Optional list of entrance pupil surface numbers. Space-separated list of int or str.",
     )
     parser.add_argument(
         "--field_bias",
-        nargs='*', # Zero or more arguments (optional)
+        nargs="*",  # Zero or more arguments (optional)
         default=[],
         help="Optional list of field bias surface numbers. Space-separated list of int or str.",
     )
@@ -105,11 +95,8 @@ def main():
     logger.debug(f"Processing file: {args.prd_file_name}")
 
     ZMX2YAML(
-        prd_file_name=args.prd_file_name,
-        wanted_surf_list=wanted_surf_list,
-        enpp=enpp,
-        field_bias=field_bias
-        ).write_yaml(yaml_file_name)
+        prd_file_name=args.prd_file_name, wanted_surf_list=wanted_surf_list, enpp=enpp, field_bias=field_bias
+    ).write_yaml(yaml_file_name)
 
     logger.info(f"File created: {yaml_file_name}")
 
@@ -141,9 +128,7 @@ def parse_intable_list(values):
         try:
             result.append(int(v))
         except ValueError as err:
-            raise ValueError(
-                f"Value '{v}' is not an integer or a string representing an integer."
-            ) from err
+            raise ValueError(f"Value '{v}' is not an integer or a string representing an integer.") from err
     return result
 
 
