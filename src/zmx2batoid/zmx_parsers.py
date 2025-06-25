@@ -21,10 +21,10 @@ class PrescriptionDataParser:
         self.surface_coordinates = {}
         self.extract_matrices()
 
-        self.entrance_pupil_position = None
-        self.entrance_pupil_diameter = None
-        self.exit_pupil_position = None
-        self.exit_pupil_diameter = None
+        # self.entrance_pupil_position = None
+        # self.entrance_pupil_diameter = None
+        # self.exit_pupil_position = None
+        # self.exit_pupil_diameter = None
         self.extract_pupils()
 
         self.configurations = None
@@ -190,6 +190,7 @@ class PrescriptionDataParser:
             field_i = 1  # count fields
             offset_i = 1  # count lines to ignore
             field_flag = False  # flag for field's section
+            nb_fields = 0  # Ensure nb_fields is always defined
             for line in lines:
                 line = line.strip()
                 if not line:
@@ -227,6 +228,7 @@ class PrescriptionDataParser:
             wave_i = 1  # count waves
             offset_i = 1  # count lines to ignore
             waves_flag = False  # flag for wave's section
+            nb_waves = 0  # Ensure nb_waves is always defined
             for line in lines:
                 line = line.strip()
                 if not line:
@@ -354,6 +356,7 @@ class PrescriptionDataParser:
         aper = [0.0, 0.0]  # aperture size
         parm = []  # parameters
         xdat = []  # additional parameters
+        surf_type = None
 
         with open(self.file_path, "r") as file:
             lines = file.readlines()
@@ -393,6 +396,7 @@ class PrescriptionDataParser:
                         aper = [0.0, 0.0]
                         parm = []
                         xdat = []
+                        surf_type = None
 
                         surface_i += 1
                         continue
@@ -436,21 +440,21 @@ class PrescriptionDataParser:
                             elif key.startswith("Y- Decenter"):
                                 obdc[1] = float(value)
 
-                            if surf_type == "COORDBRK":
+                            if surf_type is not None and surf_type == "COORDBRK":
                                 if key.startswith("Order"):
                                     parm.append(0 if value == "Decenter then tilt" else (1))
                                 else:
                                     parm.append(float(value))
                                 continue
-                            elif surf_type == "EVENASPH":
+                            elif surf_type is not None and surf_type == "EVENASPH":
                                 if key.startswith("Coefficient"):
                                     parm.append(float(value))
                                     continue
-                            elif surf_type == "BICONICX":
+                            elif surf_type is not None and surf_type == "BICONICX":
                                 if key.startswith("X Radius") or key.startswith("X Conic"):
                                     parm.append(float(value))
                                     continue
-                            elif surf_type == "SZERNSAG":
+                            elif surf_type is not None and surf_type == "SZERNSAG":
                                 if key.startswith("Coefficient") or key.startswith("Zernike Decenter"):
                                     parm.append(float(value))
                                     continue
@@ -473,6 +477,7 @@ class PrescriptionDataParser:
 
         in_index_flag = False  # flag for index's section
         has_glas = False
+        air_index_ref = 1.0  # Default value in case it's not set in the file
 
         with open(self.file_path, "r") as file:
             lines = file.readlines()
@@ -502,7 +507,7 @@ class PrescriptionDataParser:
                             has_glas = hasattr(current_surface, "GLAS")
                         if has_glas and current_surface.GLAS != "MIRROR":
                             # index is referred to air index
-                            index = float(key_parts[4].strip()) + (air_index_ref - 1)
+                            index = float(key_parts[4].strip()) + (air_index_ref - 1.0)
                             current_surface.GLAS = " ".join([current_surface.GLAS, str(index)])
                         surface_i += 1
                     else:
@@ -551,19 +556,19 @@ class PrescriptionDataParser:
 
         self.configurations = configurations
 
-    def entrance_pupil_position(self):
+    def get_entrance_pupil_position(self):
         """Get the extracted entrance pupil position."""
         return self.entrance_pupil_position
 
-    def entrance_pupil_diameter(self):
+    def get_entrance_pupil_diameter(self):
         """Get the extracted entrance pupil size."""
         return self.entrance_pupil_diameter
 
-    def exit_pupil_position(self):
+    def get_exit_pupil_position(self):
         """Get the extracted exit pupil position."""
         return self.exit_pupil_position
 
-    def exit_pupil_diameter(self):
+    def get_exit_pupil_diameter(self):
         """Get the extracted exit pupil diameter."""
         return self.exit_pupil_diameter
 

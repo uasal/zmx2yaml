@@ -10,35 +10,68 @@ Date: 05/30/2025
 
 from __future__ import annotations
 
+import sys
+import logging
+
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter("%(asctime)s - %(name)s - L%(lineno)s - %(levelname)s - %(message)s")
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+logger.setLevel("INFO")
+
 import numpy as np
 import yaml
 
-from zmx2batoid.zmx_parsers import PrescriptionDataParser
+from zmx2batoid.zmx_parsers import PrescriptionDataParser, SurfacePRD
 
-try:
-    from batoid.medium import ConstMedium
-    from batoid.optic import Optic
-except ModuleNotFoundError:
+import importlib.util
 
-    class Optic(dict):
-        """Placeholder for Optic type for runtime when batoid is not installed."""
+_BATOID_AVAILABLE = importlib.util.find_spec("batoid") is not None
 
-        pass
+if _BATOID_AVAILABLE:
+    import batoid
+    Optic = batoid.Optic
+else:
+    Optic = dict
 
-    class ConstMedium:
-        """Minimal ConstMedium for runtime when batoid is not installed."""
+class ConstMedium:
+    """ConstMedium compatible with both local and batoid implementations."""
 
-        def __init__(self, n):
-            self.n = n
+    def __new__(cls, n):
+        """Create a new ConstMedium instance."""
+        if _BATOID_AVAILABLE:
+            import batoid
+            return batoid.ConstMedium(n)
+        return super().__new__(cls)
 
-        def __eq__(self, rhs):
-            return isinstance(rhs, ConstMedium) and self.n == rhs.n
+    def __init__(self, n):
+        """Initialize ConstMedium with refractive index n."""
+        self.n = n
 
-        def __hash__(self):
-            return hash(("ConstMedium", self.n))
+    def __repr__(self):
+        """Return string representation of ConstMedium."""
+        return f"ConstMedium({self.n})"
 
-        def __repr__(self):
-            return f"ConstMedium({self.n})"
+class SellmeierMedium:
+    """SellmeierMedium compatible with both local and batoid implementations."""
+
+    def __new__(cls, coefs):
+        """Create a new SellmeierMedium instance from a list or tuple of 6 coefficients."""
+        if _BATOID_AVAILABLE:
+            import batoid
+            return batoid.SellmeierMedium(coefs)
+        return super().__new__(cls)
+
+    def __init__(self, coefs):
+        """Initialize SellmeierMedium with Sellmeier coefficients as a tuple in coefs."""
+        if len(coefs) != 6:
+            raise ValueError("SellmeierMedium requires 6 coefficients (B1, B2, B3, C1, C2, C3)")
+        self.coefs = tuple(coefs)
+
+    def __repr__(self):
+        """Return string representation of SellmeierMedium."""
+        return f"SellmeierMedium({self.coefs})"
 
 ##############################
 ####  Anchor index values ####
@@ -51,19 +84,19 @@ class AnchoredValue:
 
     Parameters
     ----------
-    value : ConstMedium
+    value : object
         The optical medium value.
     anchor_name : str
         YAML anchor name to associate with the medium.
     """
 
-    def __init__(self, value: ConstMedium, anchor_name: str):
+    def __init__(self, value: object, anchor_name: str):
         """
         Initialize AnchoredValue with a medium and anchor.
 
         Parameters
         ----------
-        value : ConstMedium
+        value : object
             The optical medium.
         anchor_name : str
             The YAML anchor name.
@@ -88,32 +121,35 @@ class AnchorDumper(yaml.SafeDumper):
     Custom PyYAML dumper class used to emit AnchoredValue objects
     with anchors in the YAML output.
     """
-
     pass
 
 
 def represent_anchored_value(dumper, data):
     """
     Create a YAML mapping node for an AnchoredValue.
-
-    Parameters
-    ----------
-    dumper : yaml.Dumper
-        PyYAML dumper object.
-    data : AnchoredValue
-        Anchored medium to serialize.
-
-    Returns
-    -------
-    yaml.Node
-        Mapping node with an anchor for YAML output.
+    Handles SellmeierMedium (expands coefs) and single float ConstMedium.
     """
     medium = data.value
     mapping = {"type": medium.__class__.__name__}
 
-    for key, val in vars(medium).items():
-        if not key.startswith("_"):
-            mapping[key] = val
+    # If medium has coefs of length 6, expand as B1..C3
+    if hasattr(medium, "coefs") and len(medium.coefs) == 6:
+        mapping.update({
+            "B1": medium.coefs[0],
+            "B2": medium.coefs[1],
+            "B3": medium.coefs[2],
+            "C1": medium.coefs[3],
+            "C2": medium.coefs[4],
+            "C3": medium.coefs[5],
+        })
+    # If medium has a single float n (ConstMedium)
+    elif hasattr(medium, "n"):
+        mapping["n"] = medium.n
+    # Fallback: dump all public attributes
+    else:
+        for key, val in vars(medium).items():
+            if not key.startswith("_"):
+                mapping[key] = val
 
     node = dumper.represent_mapping("tag:yaml.org,2002:map", mapping)
     node.anchor = data.anchor_name
@@ -123,15 +159,38 @@ def represent_anchored_value(dumper, data):
 # Register AnchoredValue representer with the YAML dumper
 AnchorDumper.add_multi_representer(AnchoredValue, represent_anchored_value)
 
+def represent_sellmeier_medium(dumper, data):
+    """
+    Represent a SellmeierMedium object for YAML serialization.
+    """
+    logger.debug(
+        f"represent_sellmeier_medium called for {data} of type {type(data)} "
+        f"with coefs: {getattr(data, 'coefs', None)}"
+    )
+    mapping = {
+        "type": data.__class__.__name__,
+        "B1": data.coefs[0],
+        "B2": data.coefs[1],
+        "B3": data.coefs[2],
+        "C1": data.coefs[3],
+        "C2": data.coefs[4],
+        "C3": data.coefs[5],
+    }
+    return dumper.represent_mapping("tag:yaml.org,2002:map", mapping)
 
-def ignore_aliases(_, data):
+# Register SellmeierMedium representer with the YAML dumper
+# AnchorDumper.add_multi_representer(SellmeierMedium, represent_sellmeier_medium)
+AnchorDumper.add_multi_representer(SellmeierMedium, represent_anchored_value)
+
+
+def ignore_aliases(self, data):
     """
     Disable PyYAML aliasing behavior for AnchoredValue types.
 
     Parameters
     ----------
-    _ : Any
-        Unused.
+    self : SafeRepresenter
+        The representer instance.
     data : object
         The object being checked.
 
@@ -151,7 +210,12 @@ yaml.representer.SafeRepresenter.ignore_aliases = ignore_aliases
 
 # Global medium for air
 global AIR
-AIR = AnchoredValue(ConstMedium(1.0), "air")
+
+if _BATOID_AVAILABLE:
+    import batoid
+    AIR = AnchoredValue(batoid.Air(), "air")
+else:
+    AIR = AnchoredValue(ConstMedium(1.000272), "air")
 
 
 class ZMX2YAML:
@@ -215,13 +279,13 @@ class ZMX2YAML:
 
         self.conv_coef = 1000 if "Millimeters" in self.prd_file.unit else (1)  # Conversion to meters if not
 
-    def extract_asphere_coefs(self, surface: PrescriptionDataParser.surface) -> list:
+    def extract_asphere_coefs(self, surface: SurfacePRD) -> list:
         """
         Extract aspheric surface coefficients from a prescription surface and convert them.
 
         Parameters
         ----------
-        surface : PrescriptionDataParser.surface
+        surface : SurfacePRD
             The surface object containing asphere parameters.
 
         Returns
@@ -229,7 +293,7 @@ class ZMX2YAML:
         list
             List of converted aspheric coefficients.
         """
-        converted_params_corrected = [0] * 8  # r^2, r^4, r^6, r^8, r^10, r^12, r^14, r^16
+        converted_params_corrected = [0.0] * 8  # r^2, r^4, r^6, r^8, r^10, r^12, r^14, r^16
         for key, value in surface.items():
             if key.startswith("PARM"):
                 index = int(key[4:])  # PARM1 -> index 1, PARM2 -> index 2, etc.
@@ -240,13 +304,13 @@ class ZMX2YAML:
                 converted_params_corrected[index - 1] = float(converted_value)
         return converted_params_corrected
 
-    def extract_zernike_coefs(self, surface: PrescriptionDataParser.surface) -> list:
+    def extract_zernike_coefs(self, surface: SurfacePRD) -> list:
         """
         Extract Zernike polynomial coefficients from a prescription surface.
 
         Parameters
         ----------
-        surface : PrescriptionDataParser.surface
+        surface : SurfacePRD
             Surface containing Zernike data fields (e.g., XDAT3, XDAT4...).
 
         Returns
@@ -254,7 +318,8 @@ class ZMX2YAML:
         list
             List of Zernike coefficients.
         """
-        znk = [0] * int(surface.XDAT1)  # Total number of Zernike coefficients
+        n_zernike = int(getattr(surface, "XDAT1", 0))
+        znk = [0] * n_zernike
         for key, value in surface.items():
             if key.startswith("XDAT") and key not in ("XDAT1", "XDAT2"):
                 index = int(key[4:]) - 3  # XDAT3 -> index 0, XDAT4 -> index 1, etc.
@@ -262,37 +327,39 @@ class ZMX2YAML:
         return znk
 
     @staticmethod
-    def medium(n: float) -> ConstMedium:
+    def medium(n_or_coefs):
         """
-        Create a constant-index medium for use in an optical model.
+        Create a constant-index or Sellmeier medium for use in an optical model.
 
         Parameters
         ----------
-        n : float
-            Refractive index value of the medium.
+        n_or_coefs : float or list/tuple
+            If float, returns ConstMedium(n). If list/tuple of 6, returns SellmeierMedium(*coefs).
 
         Returns
         -------
-        ConstMedium
-            Batoid medium with constant index `n`.
+        object
+            Batoid medium with constant index or Sellmeier coefficients.
         """
-        return ConstMedium(n)
+        if isinstance(n_or_coefs, (list, tuple)) and len(n_or_coefs) == 6:  # noqa: UP038
+            return SellmeierMedium(n_or_coefs)
+        return ConstMedium(n_or_coefs)
 
     @staticmethod
-    def insert_swapped_mediums(a: Optic, b: Optic) -> Optic:
+    def insert_swapped_mediums(a: dict, b: dict) -> dict:
         """
         Replace all mediums in optic `a` by those from optic `b` with matching anchors.
 
         Parameters
         ----------
-        a : Optic
+        a : dict
             Target optic where mediums will be replaced.
-        b : Optic
+        b : dict
             Source optic providing the AnchoredValue-wrapped mediums.
 
         Returns
         -------
-        Optic
+        dict
             New optic object with swapped mediums.
         """
         new_b = {}
@@ -322,6 +389,11 @@ class ZMX2YAML:
         -------
         dict
             Dictionary describing the surface parameters.
+
+        Raises
+        ------
+        ValueError
+            If the surface type is not handled.
         """
         surf_name = str(surf_name) if isinstance(surf_name, int) else (surf_name)
         surface = self.prd_file.surface(surf_name)
@@ -356,6 +428,8 @@ class ZMX2YAML:
                 {"type": "Zernike", "coef": znk_coefs, "R_outer": norm_rad, "R_inner": 0.0},
             ]
             return {"type": "Sum", "items": surfaces}
+
+        raise ValueError(f"Surface type {surface.TYPE} not handled")
 
     def build_dict_obsc(self, surf_name: int | str) -> dict:
         """
@@ -415,8 +489,13 @@ class ZMX2YAML:
         surf_name = str(surf_name) if isinstance(surf_name, int) else self.prd_file.get_surface_num(surf_name)
         conv_coef = self.conv_coef
 
-        rot_center = list(map(float, self.prd_file.coordinates(surf_name).offset / conv_coef))
-        angles = list(map(float, np.deg2rad(self.prd_file.coordinates(surf_name).tilt)))
+        coords = self.prd_file.coordinates(surf_name)
+        if coords is not None:
+            rot_center = list(map(float, coords.offset / conv_coef))
+            angles = list(map(float, np.deg2rad(coords.tilt)))
+        else:
+            rot_center = [0.0, 0.0, 0.0]
+            angles = [0.0, 0.0, 0.0]
         return {
             "x": rot_center[0],
             "y": rot_center[1],
@@ -425,6 +504,45 @@ class ZMX2YAML:
             "rotY": angles[1],
             "rotZ": angles[2],
         }
+
+    @staticmethod
+    def find_sellmeier_coefs(glas: str) -> list:
+        """
+        Find Sellmeier coefficients for a given glass type from AGF files (ZEMAX).
+
+        Parameters
+        ----------
+        glas : str
+            Glass name to search for in AGF files.
+
+        Returns
+        -------
+        list
+            List of Sellmeier coefficients [B1, B2, B3, C1, C2, C3].
+
+        Raises
+        ------
+        ValueError
+            If the glass type is not found in the AGF files.
+        """
+        _glas_found = False
+        sellmeier_coefs = None
+        for agf_file in ['src/zmx2batoid/MISC.AGF', 'src/zmx2batoid/SCHOTT.AGF']:
+            with open(agf_file, 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    line = line.strip()
+                    parts = line.split()
+                    if _glas_found and parts[0] == "CD":
+                        coefs = [float(x) for x in parts[1:7]]
+                        sellmeier_coefs = [coefs[0], coefs[2], coefs[4], coefs[1], coefs[3], coefs[5]]
+                        # print(f"Found medium {glas} in {agf_file}")
+                        return sellmeier_coefs
+                    if len(parts) > 1 and glas.startswith(parts[1]):
+                        _glas_found = True
+                        continue
+            _glas_found = False  # reset for next file
+        raise ValueError(f"Glass {glas} not found in MISC.AGF or SCHOTT.AGF")
 
     def build_dict_optc(self, surf_name: int | str) -> dict:
         """
@@ -443,13 +561,22 @@ class ZMX2YAML:
         surf_name = str(surf_name) if isinstance(surf_name, int) else (surf_name)
         surface = self.prd_file.surface(surf_name)
 
-        glas = getattr(surface, "GLAS", None)  # returns None in does not exist
+        glas = getattr(surface, "GLAS", None)  # returns None if does not exist
         is_mirror = isinstance(glas, str) and glas.startswith("MIRROR")
-        is_refact = isinstance(glas, str) and not glas.startswith("MIRROR")
+        is_refact = isinstance(glas, str) and glas is not None and not glas.startswith("MIRROR")
 
-        medium = (
-            AnchoredValue(self.medium(float(glas.split()[1])), str(glas.split()[0])) if is_refact else AIR
-        )
+        if is_refact and glas is not None:
+            sellmeier_coefs = self.find_sellmeier_coefs(glas)
+            glas_parts = glas.split()
+            logger.debug(f"Creating medium for glas={glas_parts[0]} with coefs={sellmeier_coefs}")
+            medium = AnchoredValue(self.medium(sellmeier_coefs), str(glas_parts[0]))
+            logger.debug(f"medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}")
+        else:
+            medium = AIR
+            logger.debug(
+                f"Using AIR medium type={type(medium.value)} anchor={medium.anchor_name} "
+                f"value={medium.value}"
+            )
 
         return {
             "type": "Mirror" if is_mirror else ("RefractiveInterface"),
@@ -505,7 +632,7 @@ class ZMX2YAML:
         dict
             Dictionary containing system-level metadata (e.g., title, author).
         """
-        wavelengths = sorted(self.prd_file.waves)
+        wavelengths = sorted(self.prd_file.waves or [])
 
         return {
             "metaData": {
