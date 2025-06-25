@@ -14,6 +14,7 @@ import numpy as np
 
 class PrescriptionDataParser:
     """Parses optical prescription data files to extract relevant parameters."""
+
     def __init__(self, file_path):
         self.file_path = file_path
 
@@ -22,8 +23,8 @@ class PrescriptionDataParser:
 
         self.entrance_pupil_position = None
         self.entrance_pupil_diameter = None
-        self.exit_pupil_position     = None
-        self.exit_pupil_diameter     = None
+        self.exit_pupil_position = None
+        self.exit_pupil_diameter = None
         self.extract_pupils()
 
         self.configurations = None
@@ -51,7 +52,7 @@ class PrescriptionDataParser:
 
     def extract_matrices(self):
         """Extracts rotation matrices, offsets, tilts, and comments from the file."""
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
         lines_iter = iter(lines)
@@ -61,7 +62,7 @@ class PrescriptionDataParser:
                 len(stripped_line) >= 6
                 and stripped_line[0].isdigit()
                 and self._is_numeric_list(stripped_line[1:6])
-                ):
+            ):
                 surface_num = stripped_line[0]
                 rotation_1 = np.array(stripped_line[1:4], dtype=float)
                 offset_1 = float(stripped_line[4])
@@ -81,7 +82,7 @@ class PrescriptionDataParser:
                     and len(line3) >= 5
                     and self._is_numeric_list(line2[:5])
                     and self._is_numeric_list(line3[:5])
-                    ):
+                ):
                     rotation_2 = np.array(line2[:3], dtype=float)
                     offset_2 = float(line2[3])
                     tilt_2 = float(line2[4])
@@ -98,11 +99,8 @@ class PrescriptionDataParser:
                     tilt_vector = None
 
                 self.surface_coordinates[surface_num] = SurfaceCoordinates(
-                    rotation_matrix,
-                    offset_vector,
-                    tilt_vector,
-                    comment
-                    )
+                    rotation_matrix, offset_vector, tilt_vector, comment
+                )
 
     def coordinates(self, surface_num):
         """Get SurfaceCoordinates object for a specific surface."""
@@ -113,7 +111,7 @@ class PrescriptionDataParser:
 
     def extract_pupils(self):
         """Extract entrance and exit pupil positions and sizes from the file without using regex."""
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
         for line in lines:
@@ -124,14 +122,14 @@ class PrescriptionDataParser:
                 value = parts[1].strip()
 
                 # File name
-                if key == "File": # to ensure it is one 'File'
-                                  # which is found and not another line finishing by 'File'
+                if key == "File":  # to ensure it is one 'File'
+                    # which is found and not another line finishing by 'File'
                     try:
                         drive = value
                         rest_of_path = parts[2].strip()
                         full_path = f"{drive}:{rest_of_path}"
                         norm_path = full_path.replace("\\", "/")
-                        self.filename = os.path.splitext(os.path.basename(norm_path))[0] # import os
+                        self.filename = os.path.splitext(os.path.basename(norm_path))[0]  # import os
                     except Exception as e:
                         print(f"Warning: Could not extract file name. Error: {e}")
 
@@ -186,24 +184,24 @@ class PrescriptionDataParser:
         """Extract and return field coordinates from the system data."""
         fields = []
 
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
-            field_i    = 1     # count fields
-            offset_i   = 1     # count lines to ignore
-            field_flag = False # flag for field's section
+            field_i = 1  # count fields
+            offset_i = 1  # count lines to ignore
+            field_flag = False  # flag for field's section
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key   = parts[0].strip()
+                key = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if "Fields" in key:
                     field_flag = True
-                    nb_fields = int(value) # total number of fields
+                    nb_fields = int(value)  # total number of fields
                     continue
                 if field_flag:
                     if offset_i <= 2:
@@ -222,25 +220,25 @@ class PrescriptionDataParser:
         """Extract and store the list of wavelength values from the system data."""
         waves = []
 
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
-            units      = None
-            wave_i     = 1     # count waves
-            offset_i   = 1     # count lines to ignore
-            waves_flag = False # flag for wave's section
+            units = None
+            wave_i = 1  # count waves
+            offset_i = 1  # count lines to ignore
+            waves_flag = False  # flag for wave's section
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key   = parts[0].strip()
+                key = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
-                if key == 'Wavelengths':
+                if key == "Wavelengths":
                     waves_flag = True
-                    nb_waves  = int(value) # total number of waves
+                    nb_waves = int(value)  # total number of waves
                     continue
                 if waves_flag:
                     if "Units" in key:
@@ -254,31 +252,32 @@ class PrescriptionDataParser:
                         wave_i += 1
                         continue
                     else:
-                        waves = [w * 1e-6 for w in waves] if units == '?m' else (waves) # '?m' means 'µm'
+                        waves = [w * 1e-6 for w in waves] if units == "?m" else (waves)  # '?m' means 'µm'
                         break
         self.waves = waves
 
     def extract_surface(self):
         """Parse and store surface prescription data from the input file."""
+
         def is_float(s):
             s = s.strip()
             if s.lstrip("+-").isdigit():
                 return True  # it's an integer
-            if s.count('.') == 1:
-                left, right = s.split('.')
+            if s.count(".") == 1:
+                left, right = s.split(".")
                 if left.lstrip("+-").isdigit() and right.isdigit():
                     return True  # it's a float
             return False
 
-        surfaces   = {}
-        surface_i  = 0               # count surfaces
-        surface_nb = self.surface_nb # total number of surfaces
+        surfaces = {}
+        surface_i = 0  # count surfaces
+        surface_nb = self.surface_nb  # total number of surfaces
 
-        offset_i = 1                 # count lines to ignore
+        offset_i = 1  # count lines to ignore
 
-        in_data_summary_flag = False # flag for surface's section
+        in_data_summary_flag = False  # flag for surface's section
 
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
             for line in lines:
@@ -287,7 +286,7 @@ class PrescriptionDataParser:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key   = parts[0].strip()
+                key = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if key.startswith("SURFACE DATA SUMMARY"):
@@ -299,18 +298,19 @@ class PrescriptionDataParser:
                         continue
                     if surface_i <= surface_nb:
                         key_parts = key.split("\t")
-                        surf_line = key_parts + [''] if len(key_parts) == 9 else (key_parts)
+                        surf_line = key_parts + [""] if len(key_parts) == 9 else (key_parts)
                         surf_line = [s.replace(" ", "") for s in surf_line[:-1]] + [surf_line[-1].strip()]
 
-                        name = ([str(surface_i), surf_line[0]]
-                                if not surf_line[-1]
-                                else [str(surface_i), surf_line[0], surf_line[-1]]
-                                )
+                        name = (
+                            [str(surface_i), surf_line[0]]
+                            if not surf_line[-1]
+                            else [str(surface_i), surf_line[0], surf_line[-1]]
+                        )
                         current_surface = SurfacePRD(name=list(set(name)))
 
                         current_surface.TYPE = surf_line[1]
 
-                        curv = 1/float(surf_line[2]) if is_float(surf_line[2]) else (0.0)
+                        curv = 1 / float(surf_line[2]) if is_float(surf_line[2]) else (0.0)
                         current_surface.CURV = curv
 
                         disz = float(surf_line[3]) if is_float(surf_line[3]) else (0.0)
@@ -328,7 +328,7 @@ class PrescriptionDataParser:
                         if coni is not None:
                             current_surface.CONI = coni
 
-                        comm = surf_line[-1]+':'+value if value else (surf_line[-1])
+                        comm = surf_line[-1] + ":" + value if value else (surf_line[-1])
                         if comm:
                             current_surface.COMM = comm
 
@@ -341,28 +341,28 @@ class PrescriptionDataParser:
 
     def extract_surface_details(self):
         """Extract detailed surface data from the prescription file."""
-        surface_i  = 0               # count surfaces
-        surface_nb = self.surface_nb # total number of surfaces
+        surface_i = 0  # count surfaces
+        surface_nb = self.surface_nb  # total number of surfaces
 
-        offset_i = 1                 # count lines to ignore
+        offset_i = 1  # count lines to ignore
 
-        in_data_details_flag = False # flag for surface details' section
+        in_data_details_flag = False  # flag for surface details' section
 
         aper_type = None
-        is_aper   = None
-        obdc = [0.0, 0.0] # aperture decenter
-        aper = [0.0, 0.0] # aperture size
-        parm = []         # parameters
-        xdat = []         # additional parameters
+        is_aper = None
+        obdc = [0.0, 0.0]  # aperture decenter
+        aper = [0.0, 0.0]  # aperture size
+        parm = []  # parameters
+        xdat = []  # additional parameters
 
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
             for line in lines:
                 line = line.strip()
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key   = parts[0].strip()
+                key = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if key.startswith("SURFACE DATA DETAIL"):
@@ -372,7 +372,7 @@ class PrescriptionDataParser:
                     if offset_i <= 1:
                         offset_i += 1
                         continue
-                    if not key: # meaning empty line i.e. end of a surface
+                    if not key:  # meaning empty line i.e. end of a surface
                         current_surface = self.surfaces[str(surface_i)]
                         if any(obdc):
                             current_surface.OBDC = np.array(obdc)
@@ -382,14 +382,13 @@ class PrescriptionDataParser:
                             current_surface.ISAP = int(is_aper)
                         if parm:
                             for j in range(len(parm)):
-                                setattr(current_surface, f'PARM{j+1}', parm[j])
+                                setattr(current_surface, f"PARM{j + 1}", parm[j])
                         if xdat:
                             for j in range(len(xdat)):
-                                setattr(current_surface, f'XDAT{j+1}', xdat[j])
-
+                                setattr(current_surface, f"XDAT{j + 1}", xdat[j])
 
                         aper_type = None
-                        is_aper   = None
+                        is_aper = None
                         obdc = [0.0, 0.0]
                         aper = [0.0, 0.0]
                         parm = []
@@ -409,13 +408,13 @@ class PrescriptionDataParser:
                                 ap = value.split()[0]
 
                                 aperture_codes = {
-                                      "Elliptical" : "ELAP",
-                                      "Rectangular": "SQAP",
-                                      "Circular"   : "CLAP",
-                                      }
+                                    "Elliptical": "ELAP",
+                                    "Rectangular": "SQAP",
+                                    "Circular": "CLAP",
+                                }
                                 aper_type = aperture_codes.get(ap)
 
-                                is_aper = value.split()[1] == 'Aperture'
+                                is_aper = value.split()[1] == "Aperture"
                                 continue
 
                             if key.startswith("Minimum Radius"):
@@ -425,10 +424,10 @@ class PrescriptionDataParser:
                                 aper[1] = float(value)
                                 continue
                             elif key.startswith("X Half Width"):
-                                aper[0] = float(value) * 2 if aper_type == 'SQAP' else (float(value))
+                                aper[0] = float(value) * 2 if aper_type == "SQAP" else (float(value))
                                 continue
                             elif key.startswith("Y Half Width"):
-                                aper[1] = float(value) * 2 if aper_type == 'SQAP' else (float(value))
+                                aper[1] = float(value) * 2 if aper_type == "SQAP" else (float(value))
                                 continue
 
                             if key.startswith("X- Decenter"):
@@ -459,7 +458,7 @@ class PrescriptionDataParser:
                                     key.startswith("Number")
                                     or key.startswith("Normalization")
                                     or key.startswith("Zernike Term")
-                                    ):
+                                ):
                                     xdat.append(float(value))
                                     continue
                     else:
@@ -467,15 +466,15 @@ class PrescriptionDataParser:
 
     def extract_surface_index(self):
         """Extract and assign refractive indexes to the optical surfaces."""
-        surface_i  = 0               # count surfaces
-        surface_nb = self.surface_nb # total number of surfaces
+        surface_i = 0  # count surfaces
+        surface_nb = self.surface_nb  # total number of surfaces
 
-        offset_i = 1                 # count lines to ignore
+        offset_i = 1  # count lines to ignore
 
-        in_index_flag = False        # flag for index's section
-        has_glas      = False
+        in_index_flag = False  # flag for index's section
+        has_glas = False
 
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
             for line in lines:
@@ -484,7 +483,7 @@ class PrescriptionDataParser:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key   = parts[0].strip()
+                key = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 if key.startswith("INDEX OF REFRACTION DATA"):
@@ -500,8 +499,8 @@ class PrescriptionDataParser:
                         key_parts = key.split("\t")
                         current_surface = self.surfaces[str(surface_i)]
                         if key_parts[0].strip() in current_surface.name:
-                            has_glas = hasattr(current_surface, 'GLAS')
-                        if has_glas and current_surface.GLAS != 'MIRROR':
+                            has_glas = hasattr(current_surface, "GLAS")
+                        if has_glas and current_surface.GLAS != "MIRROR":
                             # index is referred to air index
                             index = float(key_parts[4].strip()) + (air_index_ref - 1)
                             current_surface.GLAS = " ".join([current_surface.GLAS, str(index)])
@@ -515,7 +514,7 @@ class PrescriptionDataParser:
         current_config = None
         in_configuration = False  # flag for configuration's section
 
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             lines = file.readlines()
 
             for line in lines:
@@ -524,28 +523,20 @@ class PrescriptionDataParser:
                     continue
 
                 parts = line.split(":", 1)  # Only split on first ":"
-                key   = parts[0].strip()
+                key = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
                 key_parts = key.split()
 
                 # Detect new configuration block
-                if (
-                    len(key_parts) == 2
-                    and key_parts[0] == "Configuration"
-                    and key_parts[1].isdigit()
-                    ):
+                if len(key_parts) == 2 and key_parts[0] == "Configuration" and key_parts[1].isdigit():
                     current_config = f"Configuration {key_parts[1]}"
                     configurations[current_config] = {}
                     in_configuration = True
                     continue
 
                 # Stop reading if we reach a new section
-                if (
-                    key.startswith("SOLVE AND VARIABLE DATA")
-                    or key.startswith("END")
-                    or "DATA" in key
-                    ):
+                if key.startswith("SOLVE AND VARIABLE DATA") or key.startswith("END") or "DATA" in key:
                     in_configuration = False
                     continue
 
@@ -553,13 +544,12 @@ class PrescriptionDataParser:
                     value_parts = value.split()
                     if not value_parts:
                         continue
-                    elif key.split()[1] == 'Comment':
+                    elif key.split()[1] == "Comment":
                         configurations[current_config][key] = value
                     else:
-                        configurations[current_config][' '.join(key.split())] = float(value_parts[0])
+                        configurations[current_config][" ".join(key.split())] = float(value_parts[0])
 
         self.configurations = configurations
-
 
     def entrance_pupil_position(self):
         """Get the extracted entrance pupil position."""
@@ -584,7 +574,7 @@ class PrescriptionDataParser:
         for surface in self.surfaces.values():
             if surface_name in surface.name:
                 return surface
-        raise Exception(f'{surface_name} is not among available surfaces')
+        raise Exception(f"{surface_name} is not among available surfaces")
 
     def get_surface_num(self, surface_name):
         """Return the surface number matching the given name."""
@@ -593,28 +583,31 @@ class PrescriptionDataParser:
                 for name in surface.name:
                     if name.isdigit():
                         return int(name)
-        raise Exception(f'{surface_name} is not among available surfaces')
-
-
+        raise Exception(f"{surface_name} is not among available surfaces")
 
 
 class SurfaceCoordinates:
     """Store rotation, offset, tilt, and comment data for a surface."""
+
     def __init__(self, rotation, offset, tilt, comment):
         self.rotation = rotation
-        self.offset   = offset
-        self.tilt     = tilt
-        self.comment  = comment
+        self.offset = offset
+        self.tilt = tilt
+        self.comment = comment
 
     def __repr__(self):
-        return (f"SurfaceCoordinates(\n"
-                f"  Rotation Matrix:\n{self.rotation if self.rotation is not None else 'None'}\n"
-                f"  Offset Vector: {self.offset if self.offset is not None else 'None'}\n"
-                f"  Tilt Vector: {self.tilt if self.tilt is not None else 'None'}\n"
-                f"  Comment: {self.comment}\n")
+        return (
+            f"SurfaceCoordinates(\n"
+            f"  Rotation Matrix:\n{self.rotation if self.rotation is not None else 'None'}\n"
+            f"  Offset Vector: {self.offset if self.offset is not None else 'None'}\n"
+            f"  Tilt Vector: {self.tilt if self.tilt is not None else 'None'}\n"
+            f"  Comment: {self.comment}\n"
+        )
+
 
 class SurfacePRD:
     """Container for parsed surface prescription and metadata."""
+
     def __init__(self, name):
         """
         Initialize a Surface object with a given name.
