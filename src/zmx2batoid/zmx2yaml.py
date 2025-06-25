@@ -132,7 +132,7 @@ def represent_anchored_value(dumper, data):
     medium = data.value
     mapping = {"type": medium.__class__.__name__}
 
-    # If medium has coefs of length 6, expand as B1..C3
+    # If medium has coefs of length 6, expand as Sellmeier coefficients
     if hasattr(medium, "coefs") and len(medium.coefs) == 6:
         mapping.update({
             "B1": medium.coefs[0],
@@ -145,7 +145,7 @@ def represent_anchored_value(dumper, data):
     # If medium has a single float n (ConstMedium)
     elif hasattr(medium, "n"):
         mapping["n"] = medium.n
-    # Fallback: dump all public attributes
+    # Fallback: dump all public attributes as a list
     else:
         for key, val in vars(medium).items():
             if not key.startswith("_"):
@@ -159,27 +159,7 @@ def represent_anchored_value(dumper, data):
 # Register AnchoredValue representer with the YAML dumper
 AnchorDumper.add_multi_representer(AnchoredValue, represent_anchored_value)
 
-def represent_sellmeier_medium(dumper, data):
-    """
-    Represent a SellmeierMedium object for YAML serialization.
-    """
-    logger.debug(
-        f"represent_sellmeier_medium called for {data} of type {type(data)} "
-        f"with coefs: {getattr(data, 'coefs', None)}"
-    )
-    mapping = {
-        "type": data.__class__.__name__,
-        "B1": data.coefs[0],
-        "B2": data.coefs[1],
-        "B3": data.coefs[2],
-        "C1": data.coefs[3],
-        "C2": data.coefs[4],
-        "C3": data.coefs[5],
-    }
-    return dumper.represent_mapping("tag:yaml.org,2002:map", mapping)
-
 # Register SellmeierMedium representer with the YAML dumper
-# AnchorDumper.add_multi_representer(SellmeierMedium, represent_sellmeier_medium)
 AnchorDumper.add_multi_representer(SellmeierMedium, represent_anchored_value)
 
 
@@ -213,7 +193,7 @@ global AIR
 
 if _BATOID_AVAILABLE:
     import batoid
-    AIR = AnchoredValue(batoid.Air(), "air")
+    AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "air")
 else:
     AIR = AnchoredValue(ConstMedium(1.000272), "air")
 
@@ -238,6 +218,8 @@ class ZMX2YAML:
     field_bias : list of float, optional
         Field bias to apply when generating the optical system.
     """
+
+    _sellmeier_cache = {}
 
     def __init__(self, prd_file_name=None, wanted_surf_list=None, enpp=None, field_bias=None):
         """
@@ -525,6 +507,8 @@ class ZMX2YAML:
         ValueError
             If the glass type is not found in the AGF files.
         """
+        if glas in ZMX2YAML._sellmeier_cache:
+            return ZMX2YAML._sellmeier_cache[glas]
         _glas_found = False
         sellmeier_coefs = None
         for agf_file in ['src/zmx2batoid/MISC.AGF', 'src/zmx2batoid/SCHOTT.AGF']:
@@ -536,9 +520,10 @@ class ZMX2YAML:
                     if _glas_found and parts[0] == "CD":
                         coefs = [float(x) for x in parts[1:7]]
                         sellmeier_coefs = [coefs[0], coefs[2], coefs[4], coefs[1], coefs[3], coefs[5]]
-                        # print(f"Found medium {glas} in {agf_file}")
+                        logger.debug(f"Found medium {glas} in {agf_file}")
+                        ZMX2YAML._sellmeier_cache[glas] = sellmeier_coefs
                         return sellmeier_coefs
-                    if len(parts) > 1 and glas.startswith(parts[1]):
+                    if len(parts) > 1 and glas == parts[1]:
                         _glas_found = True
                         continue
             _glas_found = False  # reset for next file
@@ -566,8 +551,8 @@ class ZMX2YAML:
         is_refact = isinstance(glas, str) and glas is not None and not glas.startswith("MIRROR")
 
         if is_refact and glas is not None:
-            sellmeier_coefs = self.find_sellmeier_coefs(glas)
             glas_parts = glas.split()
+            sellmeier_coefs = self.find_sellmeier_coefs(glas_parts[0])
             logger.debug(f"Creating medium for glas={glas_parts[0]} with coefs={sellmeier_coefs}")
             medium = AnchoredValue(self.medium(sellmeier_coefs), str(glas_parts[0]))
             logger.debug(f"medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}")

@@ -34,7 +34,7 @@ def main():
 
     Examples
     --------
-    >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Ultramarine_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt 7 8 9 11 tests/test_data/STP.yaml --enpp 3 --field_bias 5
+    >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Ultramarine_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt 7 8 9 11 tests/test_data/UM.yaml --enpp 3 --field_bias 5
 
     Script that creates YAML file from Zemax prescription data TXT file.
     """
