@@ -26,6 +26,7 @@ import yaml
 from zmx2batoid.zmx_parsers import PrescriptionDataParser, SurfacePRD
 
 import importlib.util
+import os
 
 _BATOID_AVAILABLE = importlib.util.find_spec("batoid") is not None
 
@@ -488,14 +489,21 @@ class ZMX2YAML:
         }
 
     @staticmethod
-    def find_sellmeier_coefs(glas: str) -> list:
+    def find_sellmeier_coefs(glas: str, glass_catalogs: list[str]) -> list:
         """
-        Find Sellmeier coefficients for a given glass type from AGF files (ZEMAX).
+        Find Sellmeier coefficients for a given glass type from Zemax AGF catalog files.
+
+        This function searches through the provided list of glass catalog names and looks for 
+        the specified glass name. When found, it extracts the Sellmeier coefficients from the 
+        corresponding "CD" line and returns them in the order [B1, B2, B3, C1, C2, C3]. 
+        Results are cached for efficiency.
 
         Parameters
         ----------
         glas : str
-            Glass name to search for in AGF files.
+            The name of the glass to search for.
+        glass_catalogs : list[str]
+            List of glass catalog base names (without ".AGF" extension).
 
         Returns
         -------
@@ -505,13 +513,15 @@ class ZMX2YAML:
         Raises
         ------
         ValueError
-            If the glass type is not found in the AGF files.
+            If the glass type is not found in any of the provided AGF files.
         """
         if glas in ZMX2YAML._sellmeier_cache:
             return ZMX2YAML._sellmeier_cache[glas]
         _glas_found = False
         sellmeier_coefs = None
-        for agf_file in ['src/zmx2batoid/MISC.AGF', 'src/zmx2batoid/SCHOTT.AGF']:
+        original_catalogs = glass_catalogs.copy()
+        glass_catalogs = [os.path.join(os.path.dirname(__file__), cat + '.AGF') for cat in original_catalogs]
+        for agf_file in glass_catalogs:
             with open(agf_file, 'r') as file:
                 lines = file.readlines()
                 for line in lines:
@@ -527,7 +537,7 @@ class ZMX2YAML:
                         _glas_found = True
                         continue
             _glas_found = False  # reset for next file
-        raise ValueError(f"Glass {glas} not found in MISC.AGF or SCHOTT.AGF")
+        raise ValueError(f"Glass {glas} not found in {' or '.join(original_catalogs)}")
 
     def build_dict_optc(self, surf_name: int | str) -> dict:
         """
@@ -552,7 +562,7 @@ class ZMX2YAML:
 
         if is_refact and glas is not None:
             glas_parts = glas.split()
-            sellmeier_coefs = self.find_sellmeier_coefs(glas_parts[0])
+            sellmeier_coefs = self.find_sellmeier_coefs(glas_parts[0], self.prd_file.glass_catalogs)
             logger.debug(f"Creating medium for glas={glas_parts[0]} with coefs={sellmeier_coefs}")
             medium = AnchoredValue(self.medium(sellmeier_coefs), str(glas_parts[0]))
             logger.debug(f"medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}")

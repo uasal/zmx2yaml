@@ -180,6 +180,12 @@ class PrescriptionDataParser:
                     except ValueError:
                         print("Warning: Could not convert Exit Pupil Diameter to float.")
 
+                elif "Glass Catalogs" in key:
+                    try:
+                        self.glass_catalogs = value.strip().split()
+                    except Exception as e:
+                        print(f"Warning: Could not parse Glass Catalog(s). Error: {e}")
+
     def extract_fields(self):
         """Extract and return field coordinates from the system data."""
         fields = []
