@@ -78,6 +78,8 @@ class SellmeierMedium:
 ####  Anchor index values ####
 ##############################
 
+NAME_AND_NODE = {}
+ID_AND_NODE = {}
 
 class AnchoredValue:
     """
@@ -122,7 +124,10 @@ class AnchorDumper(yaml.SafeDumper):
     Custom PyYAML dumper class used to emit AnchoredValue objects
     with anchors in the YAML output.
     """
-    pass
+    def generate_anchor(self, node):
+        anchor = super().generate_anchor(node)
+        ID_AND_NODE[anchor] = node
+        return anchor
 
 
 def represent_anchored_value(dumper, data):
@@ -153,7 +158,8 @@ def represent_anchored_value(dumper, data):
                 mapping[key] = val
 
     node = dumper.represent_mapping("tag:yaml.org,2002:map", mapping)
-    node.anchor = data.anchor_name
+    # node.anchor = data.anchor_name
+    NAME_AND_NODE[data.anchor_name] = node
     return node
 
 
@@ -194,9 +200,9 @@ global AIR
 
 if _BATOID_AVAILABLE:
     import batoid
-    AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "air")
+    AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "AIR")
 else:
-    AIR = AnchoredValue(ConstMedium(1.000272), "air")
+    AIR = AnchoredValue(ConstMedium(1.000272), "AIR")
 
 
 class ZMX2YAML:
@@ -721,11 +727,20 @@ class ZMX2YAML:
                 allow_unicode=True,  # In case non-ASCII names show up
             )
 
-
-if __name__ == "__main__":
-    _PATH = "/Users/pierrenicolas/Documents/UASAL/stp_batoid/Batoid4LOFT/support_data/Lazuli/STOP/"
-    _PRD_FILE_NAME = _PATH + "Lazuli_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt"
-
-    ZMX2YAML(
-        prd_file_name=_PRD_FILE_NAME, wanted_surf_list=[7, 8, 9, 11], enpp=[3], field_bias=[5]
-    ).write_yaml("LAZULI STOP")
+        id_to_name = {}
+        for id_key, node in ID_AND_NODE.items():
+            for name_key, name_node in NAME_AND_NODE.items():
+                if node is name_node:
+                    id_to_name[id_key] = name_key
+                    break
+        NAME_AND_NODE.clear()
+        ID_AND_NODE.clear()
+        # Post-process YAML file to replace &idNNN and *idNNN with anchor names
+        with open(name, "r+", encoding="utf-8") as f:
+            yaml_str = f.read()
+            for id_key, name_key in id_to_name.items():
+                yaml_str = yaml_str.replace(f"&{id_key}", f"&{name_key}")
+                yaml_str = yaml_str.replace(f"*{id_key}", f"*{name_key}")
+            f.seek(0)
+            f.write(yaml_str)
+            f.truncate()
