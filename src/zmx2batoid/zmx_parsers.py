@@ -20,6 +20,7 @@ class PrescriptionDataParser:
 
         self.surface_coordinates = {}
         self.extract_matrices()
+        self.surface_data_details = {}
 
         # self.entrance_pupil_position = None
         # self.entrance_pupil_diameter = None
@@ -349,28 +350,31 @@ class PrescriptionDataParser:
 
     def extract_surface_details(self):
         """Extract detailed surface data from the prescription file."""
-        surface_i = 0  # count surfaces
-        surface_nb = self.surface_nb  # total number of surfaces
-
-        offset_i = 1  # count lines to ignore
-
-        in_data_details_flag = False  # flag for surface details' section
+        surface_i = 0
+        surface_nb = getattr(self, 'surface_nb', 0)
+        offset_i = 1
+        in_data_details_flag = False
 
         aper_type = None
         is_aper = None
-        obdc = [0.0, 0.0]  # aperture decenter
-        aper = [0.0, 0.0]  # aperture size
-        parm = []  # parameters
-        xdat = []  # additional parameters
+        obdc = [0.0, 0.0]
+        aper = [0.0, 0.0]
+        parm = []
+        xdat = []
         surf_type = None
+        current_surface_name = None
+        current_details = {}
 
         with open(self.file_path, "r") as file:
             lines = file.readlines()
+            lines_iter = iter(lines)
 
-            for line in lines:
+            for line in lines_iter:
                 line = line.strip()
+                if not line and not in_data_details_flag:
+                    continue
 
-                parts = line.split(":", 1)  # Only split on first ":"
+                parts = line.split(":", 1)
                 key = parts[0].strip()
                 value = parts[1].strip() if len(parts) > 1 else ""
 
@@ -381,98 +385,144 @@ class PrescriptionDataParser:
                     if offset_i <= 1:
                         offset_i += 1
                         continue
-                    if not key:  # meaning empty line i.e. end of a surface
-                        current_surface = self.surfaces[str(surface_i)]
-                        if any(obdc):
-                            current_surface.OBDC = np.array(obdc)
-                        if aper_type is not None:
-                            setattr(current_surface, aper_type, np.array(aper))
-                        if is_aper is not None:
-                            current_surface.ISAP = int(is_aper)
-                        if parm:
-                            for j in range(len(parm)):
-                                setattr(current_surface, f"PARM{j + 1}", parm[j])
-                        if xdat:
-                            for j in range(len(xdat)):
-                                setattr(current_surface, f"XDAT{j + 1}", xdat[j])
+                    if key.startswith("Surface"):
+                        # Save previous surface details
+                        if current_surface_name is not None:
+                            if any(obdc):
+                                current_surface.OBDC = np.array(obdc)
+                                current_details["OBDC"] = obdc.copy()
+                            if aper_type is not None:
+                                setattr(current_surface, aper_type, np.array(aper))
+                                current_details[aper_type] = aper.copy()
+                            if is_aper is not None:
+                                current_details["Is Aperture"] = is_aper
+                            if parm:
+                                for j in range(len(parm)):
+                                    setattr(current_surface, f"PARM{j + 1}", parm[j])
+                                    current_details[f"PARM{j + 1}"] = parm[j]
+                            if xdat:
+                                for j in range(len(xdat)):
+                                    setattr(current_surface, f"XDAT{j + 1}", xdat[j])
+                                    current_details[f"XDAT{j + 1}"] = xdat[j]
+                            self.surface_data_details[current_surface_name] = current_details
 
+                        # Initialize new surface
+                        current_surface_name = str(surface_i)
+                        current_surface = self.surfaces.get(str(surface_i))
+                        if current_surface is None:
+                            surface_i += 1
+                            continue
+                        surf_type = current_surface.TYPE
+                        current_details = {"Surface": key.split()[1], "Type": surf_type}
                         aper_type = None
                         is_aper = None
                         obdc = [0.0, 0.0]
                         aper = [0.0, 0.0]
                         parm = []
                         xdat = []
-                        surf_type = None
-
                         surface_i += 1
                         continue
-                    if surface_i <= surface_nb:
-                        if key.startswith("Surface"):
-                            if key.split()[1] in self.surfaces[str(surface_i)].name:
-                                surf_type = self.surfaces[str(surface_i)].TYPE
-                                continue
-                            else:
-                                raise Exception("ERROR")
-                        else:
-                            if key.startswith("Aperture"):
-                                ap = value.split()[0]
 
-                                aperture_codes = {
-                                    "Elliptical": "ELAP",
-                                    "Rectangular": "SQAP",
-                                    "Circular": "CLAP",
-                                }
-                                aper_type = aperture_codes.get(ap)
+                    if current_surface is None:
+                        continue
 
-                                is_aper = value.split()[1] == "Aperture"
-                                continue
+                    # Handle all possible detail keys
+                    if key.startswith("Aperture") and not key.startswith("Aperture decentering"):
+                        ap = value.split()[0] if value else ""
+                        aperture_codes = {
+                            "Elliptical": "ELAP",
+                            "Rectangular": "SQAP",
+                            "Circular": "CLAP",
+                        }
+                        aper_type = aperture_codes.get(ap)
+                        is_aper = True if aper_type else None
+                        if aper_type:
+                            current_details["Aperture Type"] = ap
+                        # Look for aperture dimensions in subsequent lines
+                        try:
+                            next_line = next(lines_iter).strip()
+                            if next_line.startswith("Minimum radius"):
+                                current_details["Minimum Radius"] = float(next_line.split(":")[1].strip())
+                                next_line = next(lines_iter).strip()
+                                if next_line.startswith("Maximum radius"):
+                                    current_details["Maximum Radius"] = float(next_line.split(":")[1].strip())
+                                    aper = [current_details["Minimum Radius"], current_details["Maximum Radius"]]
+                            elif next_line.startswith("Aperture decentering"):
+                                val = next_line.split(":")[1].strip().split()
+                                obdc = [float(val[0]), float(val[1])] if len(val) >= 2 else [0.0, 0.0]
+                                current_details["X- Decenter"] = obdc[0]
+                                current_details["Y- Decenter"] = obdc[1]
+                        except (StopIteration, ValueError, IndexError):
+                            pass
 
-                            if key.startswith("Minimum Radius"):
-                                aper[0] = float(value)
-                                continue
-                            elif key.startswith("Maximum Radius"):
-                                aper[1] = float(value)
-                                continue
-                            elif key.startswith("X Half Width"):
-                                aper[0] = float(value) * 2 if aper_type == "SQAP" else (float(value))
-                                continue
-                            elif key.startswith("Y Half Width"):
-                                aper[1] = float(value) * 2 if aper_type == "SQAP" else (float(value))
-                                continue
+                    elif key.startswith("Mirror substrate"):
+                        current_details["Mirror Substrate"] = value
 
-                            if key.startswith("X- Decenter"):
-                                obdc[0] = float(value)
-                                continue
-                            elif key.startswith("Y- Decenter"):
-                                obdc[1] = float(value)
+                    elif key == "Parameter":
+                        try:
+                            val = value.split()
+                            parm.append(float(val[1]))
+                            current_details[f"Parameter {len(parm)}"] = float(val[1])
+                        except (ValueError, IndexError):
+                            pass
 
-                            if surf_type is not None and surf_type == "COORDBRK":
-                                if key.startswith("Order"):
-                                    parm.append(0 if value == "Decenter then tilt" else (1))
-                                else:
-                                    parm.append(float(value))
-                                continue
-                            elif surf_type is not None and surf_type == "EVENASPH":
-                                if key.startswith("Coefficient"):
-                                    parm.append(float(value))
-                                    continue
-                            elif surf_type is not None and surf_type == "BICONICX":
-                                if key.startswith("X Radius") or key.startswith("X Conic"):
-                                    parm.append(float(value))
-                                    continue
-                            elif surf_type is not None and surf_type == "SZERNSAG":
-                                if key.startswith("Coefficient") or key.startswith("Zernike Decenter"):
-                                    parm.append(float(value))
-                                    continue
-                                if (
-                                    key.startswith("Number")
-                                    or key.startswith("Normalization")
-                                    or key.startswith("Zernike Term")
-                                ):
-                                    xdat.append(float(value))
-                                    continue
+                    elif key == "Extra Data":
+                        try:
+                            val = value.split()
+                            xdat.append(float(val[1]))
+                            current_details[f"Extra Data {len(xdat)}"] = float(val[1])
+                        except (ValueError, IndexError):
+                            pass
+
+                    elif key.startswith("Tilt/Decenter Data"):
+                        try:
+                            headers = next(lines_iter).strip().split("\t")
+                            headers = [h.strip() for h in headers if h.strip()]
+                            current(details["Tilt/Decenter Headers"] == headers)
+                            before = next(lines_iter).strip().split("\t")
+                            before = [float(b) if b.replace(".", "").replace("-", "").isdigit() else b for b in before]
+                            after = next(lines_iter).strip().split("\t")
+                            after = [float(a) if a.replace(".", "").replace("-", "").isdigit() else a for a in after]
+                            current_details["Tilt/Decenter Before"] = before
+                            current_details["Tilt/Decenter After"] = after
+                        except StopIteration:
+                            pass
+
+                    elif key.startswith("Aperture decentering"):
+                        try:
+                            val = value.split()
+                            obdc = [float(val[0]), float(val[1])] if len(val) >= 2 else [0.0, 0.0]
+                            current_details["X- Decenter"] = obdc[0]
+                            current_details["Y- Decenter"] = obdc[1]
+                        except (ValueError, IndexError):
+                            pass
+
                     else:
-                        break
+                        # Capture any other key-value pairs
+                        try:
+                            current_details[key] = float(value) if value.replace(".", "").replace("-", "").isdigit() else value
+                        except ValueError:
+                            current_details[key] = value
+
+            # Save details for the last surface
+            if current_surface_name is not None:
+                if any(obdc):
+                    current_surface.OBDC = np.array(obdc)
+                    current_details["OBDC"] = obdc.copy()
+                if aper_type is not None:
+                    setattr(current_surface, aper_type, np.array(aper))
+                    current_details[aper_type] = aper.copy()
+                if is_aper is not None:
+                    current_details["Is Aperture"] = is_aper
+                if parm:
+                    for j in range(len(parm)):
+                        setattr(current_surface, f"PARM{j + 1}", parm[j])
+                        current_details[f"PARM{j + 1}"] = parm[j]
+                if xdat:
+                    for j in range(len(xdat)):
+                        setattr(current_surface, f"XDAT{j + 1}", xdat[j])
+                        current_details[f"XDAT{j + 1}"] = xdat[j]
+                self.surface_data_details[current_surface_name] = current_details
 
     def extract_surface_index(self):
         """Extract and assign refractive indexes to the optical surfaces."""
