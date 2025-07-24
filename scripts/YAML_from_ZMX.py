@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from zmx2batoid import ZMX2YAML
+from zmx2yaml import ZMX2YAML
 
 logger = logging.getLogger(__name__)
 formatter = logging.Formatter("%(asctime)s - %(name)s - L%(lineno)s - %(levelname)s - %(message)s")

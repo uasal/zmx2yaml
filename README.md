@@ -1,4 +1,4 @@
-# zmx2batoid
+# zmx2yaml
 Methods for parsing Zemax files and creating generalized optical descriptions as YAML files.
 The YAML files are formatted to be compatible with the [Batoid Package](https://github.com/jmeyers314/batoid).
 

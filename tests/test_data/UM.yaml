@@ -1,0 +1,188 @@
+opticalSystem:
+  type: CompoundOptic
+  inMedium: &AIR
+    type: ConstMedium
+    n: 1.000272
+  outMedium: *AIR
+  medium: *AIR
+  backDist: 4.30297
+  sphereRadius: -0.9711527
+  pupilSize: 3.0
+  stopSurface:
+    type: Interface
+    name: enpp
+    surface:
+      type: Plane
+    coordSys:
+      x: 0.0
+      y: 1.9019082699999998
+      z: -0.3123841715
+      rotX: -0.20001473227855018
+      rotY: 0.0
+      rotZ: 0.0
+  items:
+  - type: Mirror
+    name: 3015mm CA dia. M1
+    surface:
+      type: Quadric
+      R: -9.371203999999999
+      conic: -0.995506
+    obscuration:
+      type: ClearAnnulus
+      x: 0.0
+      y: 1.9
+      inner: 0.0
+      outer: 1.5075
+    coordSys:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      rotX: 0.0
+      rotY: 0.0
+      rotZ: 0.0
+  - type: Mirror
+    name: 240mm CA dia. M2
+    surface:
+      type: Quadric
+      R: -0.6668010000000001
+      conic: -2.762933
+    obscuration:
+      type: ClearAnnulus
+      x: 0.0
+      y: 0.08
+      inner: 0.0
+      outer: 0.12
+    coordSys:
+      x: 0.0
+      y: 0.0
+      z: -4.44
+      rotX: 0.0
+      rotY: 0.0
+      rotZ: 0.0
+  - type: Mirror
+    name: 390X220mm CA M3
+    surface:
+      type: Quadric
+      R: -0.8661590000000001
+      conic: -0.5618
+    obscuration:
+      type: ClearRectangle
+      x: 0.0
+      y: -0.227
+      width: 0.39
+      height: 0.22
+    coordSys:
+      x: 0.0
+      y: 3.5527136789999996e-18
+      z: -2.908157
+      rotX: 0.0
+      rotY: 0.0
+      rotZ: 0.0
+  - type: Mirror
+    name: 90mm CA dia. M4 Flat
+    surface:
+      type: Plane
+    obscuration:
+      type: ClearAnnulus
+      x: 0.0
+      y: -0.003
+      inner: 0.0
+      outer: 0.045
+    coordSys:
+      x: 0.0
+      y: -0.02812189529
+      z: -3.5170529999999998
+      rotX: 0.13962634015954636
+      rotY: 0.0
+      rotZ: 0.0
+  - type: RefractiveInterface
+    name: filter
+    inMedium: *AIR
+    outMedium: &F_SILICA
+      type: SellmeierMedium
+      B1: 0.6961663
+      B2: 0.4079426
+      B3: 0.8974794
+      C1: 0.004679148
+      C2: 0.013512063
+      C3: 97.9340025
+    surface:
+      type: Plane
+    obscuration:
+      type: ClearAnnulus
+      x: 0.0
+      y: 0.0
+      inner: 0.0
+      outer: 0.025
+    coordSys:
+      x: 2.328306438e-13
+      y: 0.009307590178
+      z: -2.576432858
+      rotX: -0.043881127272662954
+      rotY: 0.0
+      rotZ: 2.556310509163376e-06
+  - type: RefractiveInterface
+    name: '27'
+    inMedium: *F_SILICA
+    outMedium: *AIR
+    surface:
+      type: Plane
+    obscuration:
+      type: ClearAnnulus
+      x: 0.0
+      y: 0.0
+      inner: 0.0
+      outer: 0.025
+    coordSys:
+      x: 2.328306438e-13
+      y: 0.00939532427
+      z: -2.574434783
+      rotX: -0.043881127272662954
+      rotY: 0.0
+      rotZ: 2.556310509163376e-06
+  - type: Detector
+    name: 36 x 24 mm chip
+    surface:
+      type: Plane
+    obscuration:
+      type: ClearRectangle
+      x: 0.0
+      y: 0.0
+      width: 0.036
+      height: 0.024
+    coordSys:
+      x: 2.328306441e-13
+      y: 0.011117901789999999
+      z: -2.535204439
+      rotX: 0.13179085711323416
+      rotY: 1.4626727439996666e-05
+      rotZ: 0.0
+metaData:
+  file: Lazuli_Mark-14_release_17
+  glassCatalogs:
+  - SCHOTT
+  - MISC
+  margin: 10.0
+  fieldBias: -0.35
+  exitPupilSize: 0.06603422
+  wavelengths:
+  - 6.33e-07
+  fields:
+  - - 0.0
+    - 0.0
+  - - 0.022235
+    - 0.014823
+  - - -0.022235
+    - 0.014823
+  - - 0.022235
+    - -0.014823
+  - - -0.022235
+    - -0.014823
+  - - 0.0
+    - 0.014823
+  - - 0.022235
+    - 0.0
+  - - -0.022235
+    - 0.0
+  - - 0.0
+    - -0.014823

@@ -1,5 +1,5 @@
 [project]
-name = "zmx2batoid"
+name = "zmx2yaml"
 license = {file = "LICENSE"}
 readme = "README.md"
 authors = [
@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Source Code" = "https://github.com/uasal/zmx2batoid"
+"Source Code" = "https://github.com/uasal/zmx2yaml"
 
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
 [project.optional-dependencies]
@@ -39,7 +39,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "src/zmx2batoid/_version.py"
+write_to = "src/zmx2yaml/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -95,7 +95,7 @@ ignore = [
 
 
 [tool.coverage.run]
-omit=["src/zmx2batoid/_version.py"]
+omit=["src/zmx2yaml/_version.py"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

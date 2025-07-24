@@ -7,11 +7,12 @@ suitable for use with Batoid optics simulations.
 Author: Pierre Raphaël Nicolas
 Date: 05/30/2025
 """
+
 from __future__ import annotations
 
+import logging
 import os
 import sys
-import logging
 from typing import TextIO
 
 logger = logging.getLogger(__name__)
@@ -24,24 +25,16 @@ logger.setLevel("INFO")
 import numpy as np
 import yaml
 
-from zmx2batoid.zmx_parsers import (
-    PrescriptionDataParser, SurfacePRD
-)
+from zmx2yaml.zmx_parsers import PrescriptionDataParser, SurfacePRD
 
-from .anchored_yaml import (
-    AnchoredValue, AnchorDumper, _NAME_AND_NODE, _ID_AND_NODE, _MEDIA,
-)
-
-from .local_types import (
-    ConstMedium, SellmeierMedium, _BATOID_AVAILABLE
-)
-
+from .anchored_yaml import _ID_AND_NODE, _MEDIA, _NAME_AND_NODE, AnchorDumper, AnchoredValue
 from .glass_database import *
-
+from .local_types import _BATOID_AVAILABLE, ConstMedium, SellmeierMedium
 
 # Global medium for air
 if _BATOID_AVAILABLE:
     import batoid
+
     AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "AIR")
 else:
     AIR = AnchoredValue(ConstMedium(1.000272), "AIR")
@@ -173,8 +166,8 @@ class ZMX2YAML:
             Batoid medium with constant index or Sellmeier coefficients.
         """
         if isinstance(n_or_coefs, (list, tuple)) and len(n_or_coefs) == 6:  # noqa: UP038
-            return SellmeierMedium(n_or_coefs) # type: ignore
-        return ConstMedium(n_or_coefs) # type: ignore
+            return SellmeierMedium(n_or_coefs)  # type: ignore
+        return ConstMedium(n_or_coefs)  # type: ignore
 
     @staticmethod
     def insert_swapped_mediums(a: dict, b: dict) -> dict:
@@ -341,9 +334,9 @@ class ZMX2YAML:
         """
         Find Sellmeier coefficients for a given glass type from Zemax AGF catalog files.
 
-        This function searches through the provided list of glass catalog names and looks for 
-        the specified glass name. When found, it extracts the Sellmeier coefficients from the 
-        corresponding "CD" line and returns them in the order [B1, B2, B3, C1, C2, C3]. 
+        This function searches through the provided list of glass catalog names and looks for
+        the specified glass name. When found, it extracts the Sellmeier coefficients from the
+        corresponding "CD" line and returns them in the order [B1, B2, B3, C1, C2, C3].
         Results are cached for efficiency.
 
         Parameters
@@ -366,7 +359,7 @@ class ZMX2YAML:
         # Check if the glass is already cached
         if glas in ZMX2YAML._sellmeier_cache:
             return ZMX2YAML._sellmeier_cache[glas]
-        
+
         # Determine the AGF file to use based on the glass name
         agf_file = None
         found_catalog = None
@@ -374,12 +367,14 @@ class ZMX2YAML:
             cat_upper = cat.upper()
             catalog_dict = globals().get(cat_upper)
             if catalog_dict and glas in catalog_dict:
-                agf_file = os.path.join(os.path.dirname(__file__), '..', '..', 'AGF_files', catalog_dict[glas])
+                agf_file = os.path.join(
+                    os.path.dirname(__file__), "..", "..", "AGF_files", catalog_dict[glas]
+                )
                 found_catalog = cat_upper
                 break
         if agf_file is None:
             raise ValueError(f"Glass {glas} not found in {' or '.join(glass_catalogs)}")
-        
+
         # Delete unused catalog dicts from globals to free memory
         for cat in glass_catalogs:
             cat_upper = cat.upper()
@@ -387,7 +382,7 @@ class ZMX2YAML:
                 del globals()[cat_upper]
 
         # Parse the AGF file to find Sellmeier coefficients
-        with open(agf_file, 'r') as file:
+        with open(agf_file, "r") as file:
             lines = file.readlines()
             _glas_found = False
             sellmeier_coefs = None
@@ -435,8 +430,7 @@ class ZMX2YAML:
         else:
             medium = AIR
             logger.debug(
-                f"Using AIR medium type={type(medium.value)} anchor={medium.anchor_name} "
-                f"value={medium.value}"
+                f"Using AIR medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}"
             )
 
         return {
@@ -564,7 +558,7 @@ class ZMX2YAML:
             "build_dict_opsy" should be called first to populate _MEDIA.
 
         .. danger::
-            Should NOT be used because anchors are not natively given in 
+            Should NOT be used because anchors are not natively given in
             "opticalSystem" by Batoid
 
         Returns
@@ -585,7 +579,7 @@ class ZMX2YAML:
             Full optical system definition ready to be serialized.
         """
         return self.build_dict_opsy() | self.build_dict_meta()
-    
+
     @staticmethod
     def anchor_correction(f: TextIO) -> None:
         """
@@ -611,14 +605,14 @@ class ZMX2YAML:
         _MEDIA.clear()
 
         # Post-process YAML file to replace &idNNN and *idNNN with anchor names
-        f.seek(0) # Back to the start of the file
+        f.seek(0)  # Back to the start of the file
         yaml_str = f.read()
         for id_key, name_key in id_to_name.items():
             yaml_str = yaml_str.replace(f"&{id_key}", f"&{name_key}")
             yaml_str = yaml_str.replace(f"*{id_key}", f"*{name_key}")
-        f.seek(0) # Back to the start of the file
+        f.seek(0)  # Back to the start of the file
         f.write(yaml_str)
-        f.truncate() # End of file truncation to remove old content (not necessary)
+        f.truncate()  # End of file truncation to remove old content (not necessary)
 
     def write_yaml(self, name: str) -> None:
         """

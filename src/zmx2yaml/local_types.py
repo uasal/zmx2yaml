@@ -2,6 +2,7 @@ import importlib.util
 
 _BATOID_AVAILABLE = importlib.util.find_spec("batoid") is not None
 
+
 class ConstMedium:
     """ConstMedium compatible with both local and batoid implementations."""
 
@@ -9,6 +10,7 @@ class ConstMedium:
         """Create a new ConstMedium instance."""
         if _BATOID_AVAILABLE:
             import batoid
+
             return batoid.ConstMedium(n)
         return super().__new__(cls)
 
@@ -20,6 +22,7 @@ class ConstMedium:
         """Return string representation of ConstMedium."""
         return f"ConstMedium({self.n})"
 
+
 class SellmeierMedium:
     """SellmeierMedium compatible with both local and batoid implementations."""
 
@@ -27,6 +30,7 @@ class SellmeierMedium:
         """Create a new SellmeierMedium instance from a list or tuple of 6 coefficients."""
         if _BATOID_AVAILABLE:
             import batoid
+
             return batoid.SellmeierMedium(coefs)
         return super().__new__(cls)
 

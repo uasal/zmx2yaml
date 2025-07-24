@@ -1,12 +1,11 @@
-from .local_types import (
-    ConstMedium, SellmeierMedium
-)
-
 import yaml
+
+from .local_types import ConstMedium, SellmeierMedium
 
 _NAME_AND_NODE = {}
 _ID_AND_NODE = {}
 _MEDIA = {}
+
 
 class AnchoredValue:
     """
@@ -52,6 +51,7 @@ class AnchorDumper(yaml.SafeDumper):
     Custom PyYAML dumper class used to emit AnchoredValue objects
     with anchors in the YAML output.
     """
+
     def generate_anchor(self, node):
         anchor = super().generate_anchor(node)
         _ID_AND_NODE[anchor] = node
@@ -68,14 +68,16 @@ def represent_anchored_value(dumper, data):
 
     # If medium has coefs of length 6, expand as Sellmeier coefficients
     if hasattr(medium, "coefs") and len(medium.coefs) == 6:
-        mapping.update({
-            "B1": medium.coefs[0],
-            "B2": medium.coefs[1],
-            "B3": medium.coefs[2],
-            "C1": medium.coefs[3],
-            "C2": medium.coefs[4],
-            "C3": medium.coefs[5],
-        })
+        mapping.update(
+            {
+                "B1": medium.coefs[0],
+                "B2": medium.coefs[1],
+                "B3": medium.coefs[2],
+                "C1": medium.coefs[3],
+                "C2": medium.coefs[4],
+                "C3": medium.coefs[5],
+            }
+        )
     # If medium has a single float n (ConstMedium)
     elif hasattr(medium, "n"):
         mapping["n"] = medium.n

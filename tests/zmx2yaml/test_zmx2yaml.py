@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 import yaml
 
-from zmx2batoid import ZMX2YAML
+from zmx2yaml import ZMX2YAML
 
 TEST_SUPPORT_DATA_DIR = pathlib.Path(__file__).parents[1].joinpath("test_data")
 
