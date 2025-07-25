@@ -1,0 +1,580 @@
+System/Prescription Data
+
+File : C:\Users\ual-laptop\Desktop\Lazuli_Mark-11_DKim1_Release_HChoi02.ZOS
+Title: Lazuli Mark 11
+Date : 2/17/2025
+
+
+GENERAL LENS DATA:
+
+Surfaces                : 	              15
+Stop                    : 	               3
+System Aperture         : 	Entrance Pupil Diameter = 	3000
+Clear Semi Diameter Margin %  :	10 
+Field Unpolarized       :	On
+Convert thin film phase to ray equivalent :	On 
+J/E Conversion Method   :	X Axis Reference  
+Glass Catalogs          : 	SCHOTT 
+Ray Aiming              :	Off
+Apodization             : 	Uniform, factor = 	   0.00000E+00
+Reference OPD           :	Exit Pupil  
+Paraxial Rays Setting   :	Ignore Coordinate Breaks  
+Method to Compute F/#   :	Tracing Rays  
+Method to Compute Huygens Integral   : Auto
+Print Coordinate Breaks :	On
+Multi-Threading         :	On
+OPD Modulo 2 Pi         :	Off
+Temperature (C)         : 	    2.00000E+01
+Pressure (ATM)          : 	    1.00000E+00
+Adjust Index Data To Environment  :	Off
+Effective Focal Length  :	       -42045.96	(in air at system temperature and pressure)
+Effective Focal Length  :	       -42045.96	(in image space)
+Back Focal Length       :	        772.5169
+Total Track             :	         4615.36
+Image Space F/#         :	        14.01532
+Paraxial Working F/#    :	        14.01532
+Working F/#             :	        14.06258
+Image Space NA          :	      0.03565257
+Object Space NA         :	    1.499999e-07
+Stop Radius             :	            1500
+Paraxial Image Height   :	        110.0763
+Paraxial Magnification  :	               0
+Entrance Pupil Diameter :	            3000
+Entrance Pupil Position :	         4302.97
+Exit Pupil Diameter     :	        58.19394
+Exit Pupil Position     :	       -803.0028
+Field Type              : 	Angle in degrees
+Maximum Radial Field    :	       0.3088689
+Primary Wavelength [?m] :	           0.633
+Angular Magnification   :	       -52.90898
+Lens Units              :	   Millimeters
+Source Units            :	   Watts 
+Analysis Units          :	   Watts/cm^2 
+Afocal Mode Units       :	   milliradians
+MTF Units               :	   cycles/millimeter 
+Include Calculated Data in Session File  :	On 
+Include Calculated Data in Session File  :	On 
+ 
+Fields          : 15
+Field Type              : 	Angle in degrees
+ #  	   X-Value     	  Y-Value     	   Weight
+ 1 	      0.180000 	     -0.075000 	      1.000000
+ 2 	      0.135000 	     -0.037500 	      1.000000
+ 3 	      0.090000 	      0.000000 	      1.000000
+ 4 	      0.180000 	     -0.150000 	      1.000000
+ 5 	      0.000000 	      0.000000 	      1.000000
+ 6 	      0.000000 	     -0.075000 	      1.000000
+ 7 	      0.270000 	     -0.150000 	      1.000000
+ 8 	      0.000000 	      0.075000 	      1.000000
+ 9 	      0.000000 	     -0.150000 	      1.000000
+10 	      0.090000 	     -0.150000 	      1.000000
+11 	      0.180000 	      0.008000 	      1.000000
+12 	      0.090000 	     -0.075000 	      1.000000
+13 	      0.245000 	     -0.075000 	      1.000000
+14 	      0.210000 	     -0.023000 	      1.000000
+15 	      0.076000 	      0.064000 	      1.000000
+ 
+Vignetting Factors
+ #     	VDX     	VDY     	VCX     	VCY     	VAN
+ 1 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 2 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 3 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 4 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 5 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 6 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 7 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 8 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 9 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+10 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+11 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+12 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+13 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+14 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+15 	 0.000000 	 0.000000 	 0.000000 	 0.000000 	 0.000000
+ 
+Wavelengths     : 1
+Units: ?m
+ #       	Value       	Weight
+ 1 	      0.633000 	      1.000000
+ 
+Predicted coordinate ABCD matrix:
+A = 	  -4.221e+04
+B = 	           0
+C = 	           0
+D = 	  -4.261e+04
+ 
+SURFACE DATA SUMMARY:
+
+Surf       	Type        	Radius        	Thickness           	Glass      	  Clear Diam   	  Chip Zone  	  Mech Diam       	   Conic        	Comment
+ OBJ	 STANDARD	       Infinity	       Infinity	                     	             0	             0	             0	              0	 
+   1	 STANDARD	       Infinity	        4302.97	                     	      3351.032	             0	      3351.032	              0	 Telescope start
+   2	 COORDBRK	              -	              0	                     	             -	             -	             -	              -	 Field Bias
+ STO	 STANDARD	       Infinity	              0	                     	      3060.461	             0	      3060.461	              0	 stop
+   4	 COORDBRK	              -	         312.39	                     	             -	             -	             -	              -	 
+   5	 COORDBRK	              -	              0	                     	             -	             -	             -	              -	 Field Bias
+   6	 COORDBRK	              -	              0	                     	             -	             -	             -	              -	 Off axis
+   7	 STANDARD	      -9371.204	          -4440	               MIRROR	      7477.007	             0	        3000.2	     -0.9938536	 3000mm CA dia. M1
+   8	 STANDARD	       -672.792	       1431.248	               MIRROR	      417.4996	             0	           220	       -2.76008	 220mm CA dia. M2
+   9	 STANDARD	      -737.8932	           -490	               MIRROR	       367.791	             0	       367.791	     -0.5964555	 380X220mm CA M3
+  10	 COORDBRK	              -	              0	                     	             -	             -	             -	              -	 
+  11	 STANDARD	       Infinity	              0	               MIRROR	      158.3214	             0	      158.3214	              0	 110X80mm CA dia. M4 Flat
+  12	 COORDBRK	              -	       771.9826	                     	             -	             -	             -	              -	 
+  13	 COORDBRK	              -	              0	                     	             -	             -	             -	              -	 
+  14	 STANDARD	       Infinity	              0	                     	      447.7717	             0	      447.7717	              0	 
+ IMA	 STANDARD	       Infinity	               	                     	      407.0652	             0	      407.0652	              0	 420 x 180mm Flat Detector
+ 
+
+
+SURFACE DATA DETAIL:
+
+Surface OBJ STANDARD 
+
+Surface   1 STANDARD Telescope start
+
+Surface   2 COORDBRK Field Bias
+Decenter X               :                0
+Decenter Y               :                0
+Tilt About X             :        -11.25875
+Tilt About Y             :                0
+Tilt About Z             :                0
+Order                    : Decenter then tilt
+
+Surface STO STANDARD stop
+Aperture                 : Elliptical Aperture
+X Half Width             :          1500.01
+Y Half Width             :        1529.4332
+
+Surface   4 COORDBRK 
+Decenter X               :                0
+Decenter Y               :                0
+Tilt About X             :         11.25875
+Tilt About Y             :                0
+Tilt About Z             :                0
+Order                    : Tilt then decenter
+
+Surface   5 COORDBRK Field Bias
+Decenter X               :                0
+Decenter Y               :                0
+Tilt About X             :              0.2
+Tilt About Y             :                0
+Tilt About Z             :                0
+Order                    : Decenter then tilt
+
+Surface   6 COORDBRK Off axis
+Decenter X               :                0
+Decenter Y               :            -1900
+Tilt About X             :                0
+Tilt About Y             :                0
+Tilt About Z             :                0
+Order                    : Decenter then tilt
+
+Surface   7 STANDARD 3000mm CA dia. M1
+Mirror Substrate         : Flat, Thickness = 1.15384E+02
+Aperture                 : Circular Aperture
+Minimum Radius           :                0
+Maximum Radius           :           1500.1
+X- Decenter              :                0
+Y- Decenter              :             1900
+
+Surface   8 STANDARD 220mm CA dia. M2
+Mirror Substrate         : Flat, Thickness = 1.00000E+02
+Aperture                 : Circular Aperture
+Minimum Radius           :                0
+Maximum Radius           :              110
+X- Decenter              :                0
+Y- Decenter              :              115
+
+Surface   9 STANDARD 380X220mm CA M3
+Mirror Substrate         : Flat, Thickness = 2.88460E+01
+Aperture                 : Rectangular Aperture
+X Half Width             :              190
+Y Half Width             :              110
+X- Decenter              :                0
+Y- Decenter              :               15
+
+Surface  10 COORDBRK 
+Decenter X               :                0
+Decenter Y               :                0
+Tilt About X             :                6
+Tilt About Y             :                0
+Tilt About Z             :                0
+Order                    : Decenter then tilt
+
+Surface  11 STANDARD 110X80mm CA dia. M4 Flat
+Mirror Substrate         : Flat, Thickness = 9.00000E+01
+Aperture                 : Elliptical Aperture
+X Half Width             :               55
+Y Half Width             :               40
+X- Decenter              :                0
+Y- Decenter              :              -42
+
+Surface  12 COORDBRK 
+Decenter X               :                0
+Decenter Y               :                0
+Tilt About X             :                6
+Tilt About Y             :                0
+Tilt About Z             :                0
+Order                    : Tilt then decenter
+
+Surface  13 COORDBRK 
+Decenter X               :                0
+Decenter Y               :                0
+Tilt About X             :                0
+Tilt About Y             :                0
+Tilt About Z             :                0
+Order                    : Decenter then tilt
+
+Surface  14 STANDARD 
+
+Surface IMA STANDARD 420 x 180mm Flat Detector
+Aperture                 : Rectangular Aperture
+X Half Width             :              210
+Y Half Width             :               90
+X- Decenter              :                0
+Y- Decenter              :             -120
+ 
+EDGE THICKNESS DATA:
+
+Surf        	 X-Edge        	 Y-Edge
+   1 	   4302.970000 	   4302.970000
+   2 	      0.000000 	      0.000000
+ STO 	      0.000000 	      0.000000
+   4 	    312.390000 	    312.390000
+   5 	      0.000000 	      0.000000
+   6 	   -120.069343 	   -120.069343
+   7 	  -4328.819680 	  -4328.819680
+   8 	   1417.076723 	   1417.076723
+   9 	   -466.939652 	   -466.939652
+  10 	      0.000000 	      0.000000
+  11 	      0.000000 	      0.000000
+  12 	    771.982644 	    771.982644
+  13 	      0.000000 	      0.000000
+  14 	      0.000000 	      0.000000
+ IMA 	      0.000000 	      0.000000
+ 
+SOLVE AND VARIABLE DATA:
+
+ Thickness of   4       : Solve, Compensator from 1, held at 4615.36
+ Parameter  3 Surf   4  : Solve, Pickup from surface 2 scaled by -1, offset by 0
+ Conic of   8           : Variable
+ Conic of   9           : Variable
+ Thickness of  12       : Variable
+ Parameter  3 Surf  12  : Solve, Pickup from surface 10 scaled by 1, offset by 0
+ Parameter  4 Surf  12  : Solve, Pickup from surface 10 scaled by 1, offset by 0
+ 
+INDEX OF REFRACTION DATA:
+
+System Temperature:   20.0000 Celsius
+System Pressure   :    1.0000 Atmospheres
+Absolute air index:    1.000272 at wavelength 0.633000 ?m
+Index data is relative to air at the system temperature and pressure.
+Wavelengths are measured in air at the system temperature and pressure.
+ 
+Surf                 	 Glass 	   Temp      	Pres  	   0.63300000
+   0 	                       	  20.00 	    1.00  	  1.0000000000	
+   1 	                       	  20.00 	    1.00  	  1.0000000000	
+   2 	               <CRD BRK>        	        	  1.0000000000	
+   3 	                       	  20.00 	    1.00  	  1.0000000000	
+   4 	               <CRD BRK>        	        	  1.0000000000	
+   5 	               <CRD BRK>        	        	  1.0000000000	
+   6 	               <CRD BRK>        	        	  1.0000000000	
+   7 	                MIRROR 	  20.00 	    1.00  	  1.0000000000	
+   8 	                MIRROR 	  20.00 	    1.00  	  1.0000000000	
+   9 	                MIRROR 	  20.00 	    1.00  	  1.0000000000	
+  10 	               <CRD BRK>        	        	  1.0000000000	
+  11 	                MIRROR 	  20.00 	    1.00  	  1.0000000000	
+  12 	               <CRD BRK>        	        	  1.0000000000	
+  13 	               <CRD BRK>        	        	  1.0000000000	
+  14 	                       	  20.00 	    1.00  	  1.0000000000	
+  15 	                       	  20.00 	    1.00  	  1.0000000000	
+ 
+THERMAL COEFFICIENT OF EXPANSION DATA:
+
+Surf                  	 Glass     	   TCE * 10E-6
+  0  	                         	  0.0000000000
+  1  	                         	  0.0000000000
+  2 	               <CRD BRK>  	  0.0000000000
+  3  	                         	  0.0000000000
+  4 	               <CRD BRK>  	  0.0000000000
+  5 	               <CRD BRK>  	  0.0000000000
+  6 	               <CRD BRK>  	  0.0000000000
+  7  	                MIRROR   	  0.0000000000
+  8  	                MIRROR   	  0.0000000000
+  9  	                MIRROR   	  0.0000000000
+ 10 	               <CRD BRK>  	  0.0000000000
+ 11  	                MIRROR   	  0.0000000000
+ 12 	               <CRD BRK>  	  0.0000000000
+ 13 	               <CRD BRK>  	  0.0000000000
+ 14  	                         	  0.0000000000
+ 15  	                         	  0.0000000000
+ 
+GLOBAL VERTEX COORDINATES, ORIENTATIONS, AND ROTATION/OFFSET MATRICES:
+
+Reference Surface: 7
+
+Surf           	R11           	R12            	R13                 	X          	   Tilt X
+               	R21            	R22            	R23                 	Y          	   Tilt Y
+               	R31            	R32            	R33                 	Z          	   Tilt Z
+
+  1 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	 -2.000000000E-01 	Telescope start
+    	  0.0000000000 	  0.9999939077 	  0.0034906514 	  1.883889387E+03 	  0.000000000E+00
+    	  0.0000000000 	 -0.0034906514 	  0.9999939077 	 -4.615331882E+03 	  0.000000000E+00
+
+  2 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	 -1.145874957E+01 	Field Bias
+    	  0.0000000000 	  0.9800679867 	  0.1986623803 	  1.898909555E+03 	  0.000000000E+00
+    	  0.0000000000 	 -0.1986623803 	  0.9800679867 	 -3.123880968E+02 	  0.000000000E+00
+
+  3 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	 -1.145874957E+01 	stop
+    	  0.0000000000 	  0.9800679867 	  0.1986623803 	  1.898909555E+03 	  0.000000000E+00
+    	  0.0000000000 	 -0.1986623803 	  0.9800679867 	 -3.123880968E+02 	  0.000000000E+00
+
+  4 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	 -2.000000000E-01 	
+    	  0.0000000000 	  0.9999939077 	  0.0034906514 	  1.898909555E+03 	  0.000000000E+00
+    	  0.0000000000 	 -0.0034906514 	  0.9999939077 	 -3.123880968E+02 	  0.000000000E+00
+
+  5 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00 	Field Bias
+    	  0.0000000000 	  1.0000000000 	  0.0000000000 	  1.900000000E+03 	  0.000000000E+00
+    	  0.0000000000 	  0.0000000000 	  1.0000000000 	  0.000000000E+00 	  0.000000000E+00
+
+  6 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00 	Off axis
+    	  0.0000000000 	  1.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00
+    	  0.0000000000 	  0.0000000000 	  1.0000000000 	  0.000000000E+00 	  0.000000000E+00
+
+  7 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00 	3000mm CA dia. M1
+    	  0.0000000000 	  1.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00
+    	  0.0000000000 	  0.0000000000 	  1.0000000000 	  0.000000000E+00 	  0.000000000E+00
+
+  8 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00 	220mm CA dia. M2
+    	  0.0000000000 	  1.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00
+    	  0.0000000000 	  0.0000000000 	  1.0000000000 	 -4.440000000E+03 	  0.000000000E+00
+
+  9 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00 	380X220mm CA M3
+    	  0.0000000000 	  1.0000000000 	  0.0000000000 	  0.000000000E+00 	  0.000000000E+00
+    	  0.0000000000 	  0.0000000000 	  1.0000000000 	 -3.008751953E+03 	  0.000000000E+00
+
+ 10 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  6.000000000E+00 	
+    	  0.0000000000 	  0.9945218954 	 -0.1045284633 	  0.000000000E+00 	  0.000000000E+00
+    	  0.0000000000 	  0.1045284633 	  0.9945218954 	 -3.498751953E+03 	  0.000000000E+00
+
+ 11 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  6.000000000E+00 	110X80mm CA dia. M4 Flat
+    	  0.0000000000 	  0.9945218954 	 -0.1045284633 	  0.000000000E+00 	  0.000000000E+00
+    	  0.0000000000 	  0.1045284633 	  0.9945218954 	 -3.498751953E+03 	  0.000000000E+00
+
+ 12 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  1.200000000E+01 	
+    	  0.0000000000 	  0.9781476007 	 -0.2079116908 	  0.000000000E+00 	  0.000000000E+00
+    	  0.0000000000 	  0.2079116908 	  0.9781476007 	 -3.498751953E+03 	  0.000000000E+00
+
+ 13 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  1.200000000E+01 	
+    	  0.0000000000 	  0.9781476007 	 -0.2079116908 	 -1.605042168E+02 	  0.000000000E+00
+    	  0.0000000000 	  0.2079116908 	  0.9781476007 	 -2.743638982E+03 	  0.000000000E+00
+
+ 14 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  1.200000000E+01 	
+    	  0.0000000000 	  0.9781476007 	 -0.2079116908 	 -1.605042168E+02 	  0.000000000E+00
+    	  0.0000000000 	  0.2079116908 	  0.9781476007 	 -2.743638982E+03 	  0.000000000E+00
+
+ 15 	  1.0000000000 	  0.0000000000 	  0.0000000000 	  0.000000000E+00 	  1.200000000E+01 	420 x 180mm Flat Detector
+    	  0.0000000000 	  0.9781476007 	 -0.2079116908 	 -1.605042168E+02 	  0.000000000E+00
+    	  0.0000000000 	  0.2079116908 	  0.9781476007 	 -2.743638982E+03 	  0.000000000E+00
+
+ 
+GLOBAL SURFACE CENTER OF CURVATURE POINTS:
+
+Reference Surface: 7
+
+Surf             	X              	Y              	Z
+  1              	-              	-              	- 	Telescope start
+  2              	-              	-              	- 	Field Bias
+  3              	-              	-              	- 	stop
+  4              	-              	-              	- 	
+  5              	-              	-              	- 	Field Bias
+  6              	-              	-              	- 	Off axis
+  7 	  0.0000000000 	  0.0000000000 	-9371.2040000000 	3000mm CA dia. M1
+  8 	  0.0000000000 	  0.0000000000 	-5112.7919858690 	220mm CA dia. M2
+  9 	  0.0000000000 	  0.0000000000 	-3746.6451799495 	380X220mm CA M3
+ 10              	-              	-              	- 	
+ 11              	-              	-              	- 	110X80mm CA dia. M4 Flat
+ 12              	-              	-              	- 	
+ 13              	-              	-              	- 	
+ 14              	-              	-              	- 	
+ 15              	-              	-              	- 	420 x 180mm Flat Detector
+ 
+ELEMENT VOLUME DATA:
+
+For centered elements with plane or spherical circular faces, exact
+volumes are computed by assuming edges are squared up to the larger
+of the front and back radial aperture.
+
+For all other elements, approximate volumes are numerically integrated
+to 0.1% accuracy. Zero volume means the volume cannot be accurately computed.
+
+Single elements that are duplicated in the Lens Data Editor
+for ray tracing purposes may be listed more than once yielding
+incorrect total mass estimates.
+
+                            	 Volume cc   	Density g/cc       	Mass g
+Total Mass:                                           	      0.000000
+ 
+F/# DATA:
+
+F/# calculations consider vignetting factors and ignore surface apertures.
+
+     Wavelength:	     	    0.633000    	
+#	            Field       	Tan       	Sag
+1	0.1800, -0.0750 (deg):	  14.1013 	  13.9973
+2	0.1350, -0.0375 (deg):	  14.0843 	  14.0291
+3	0.0900, 0.0000 (deg):	  14.0741 	  14.0619
+4	0.1800, -0.1500 (deg):	  14.0705 	  13.9759
+5	0.0000, 0.0000 (deg):	  14.0552 	  14.0700
+6	0.0000, -0.0750 (deg):	  14.0331 	  14.0305
+7	0.2700, -0.1500 (deg):	  14.1461 	  13.9381
+8	0.0000, 0.0750 (deg):	  14.0838 	  14.1312
+9	0.0000, -0.1500 (deg):	  14.0090 	  14.0113
+10	0.0900, -0.1500 (deg):	  14.0245 	  14.0020
+11	0.1800, 0.0080 (deg):	  14.1337 	  14.0450
+12	0.0900, -0.0750 (deg):	  14.0502 	  14.0218
+13	0.2450, -0.0750 (deg):	  14.1588 	  13.9725
+14	0.2100, -0.0230 (deg):	  14.1473 	  14.0138
+15	0.0760, 0.0640 (deg):	  14.0934 	  14.1155
+ 
+CARDINAL POINTS:
+
+Object space positions are measured with respect to surface 1.
+Image space positions are measured with respect to the image surface.
+The index in both the object space and image space is considered.
+
+                                 	Object Space           	Image Space
+W = 	0.633000	(Primary)
+Focal Length          : 	       42045.959477 	      -42045.959477
+Focal Planes          : 	    -2220306.022781 	           0.534220
+Principal Planes      : 	    -2262351.982258 	       42046.493697
+Anti-Principal Planes : 	    -2178260.063303 	      -42045.425258
+Nodal Planes          : 	    -2262351.982258 	       42046.493697
+Anti-Nodal Planes     : 	    -2178260.063303 	      -42045.425258
+ 
+PHYSICAL OPTICS PROPAGATION SETTINGS SUMMARY:
+
+ OBJ STANDARD                    
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   1 STANDARD     Telescope start
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   2 COORDBRK          Field Bias
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+ STO STANDARD                stop
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   4 COORDBRK                    
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   5 COORDBRK          Field Bias
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   6 COORDBRK            Off axis
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   7 STANDARD   3000mm CA dia. M1
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   8 STANDARD    220mm CA dia. M2
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+   9 STANDARD     380X220mm CA M3
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+  10 COORDBRK                    
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+  11 STANDARD110X80mm CA dia. M4 Fl
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+  12 COORDBRK                    
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+  13 COORDBRK                    
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+  14 STANDARD                    
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+ IMA STANDARD420 x 180mm Flat Detec
+Use Rays To Propagate To Next Surface  : Off
+Recompute Pilot Beam                   : Off
+Do Not Rescale Beam Size Using Ray Data: Off
+Use Angular Spectrum Propagator        : Off
+Use X-Axis Reference                   : Off
+Output Pilot Radius                    : Best Fit
+ 
+FILES USED:
+
+Zemax File
+  C:\Users\ual-laptop\Desktop\Lazuli_Mark-11_DKim1_Release_HChoi02.ZOS
+Session File
+  C:\Users\ual-laptop\Desktop\Lazuli_Mark-11_DKim1_Release_HChoi02.ZDA
+Glass Catalogs
+  C:\Users\ual-laptop\Desktop\GLASSCAT\SCHOTT.AGF
+Coating Data
+  C:\Users\ual-laptop\Desktop\COATINGS\COATING.DAT
+ABg Data
+  C:\Users\ual-laptop\Desktop\ABG_DATA\ABG_DATA.DAT

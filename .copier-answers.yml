@@ -12,9 +12,9 @@ failure_notification: []
 include_benchmarks: false
 include_docs: false
 mypy_type_checking: none
-package_name: zmx2batoid
+package_name: zmx2yaml
 project_license: GPL3
-project_name: zmx2batoid
+project_name: zmx2yaml
 project_organization: uasal
 python_versions:
 - '3.11'
