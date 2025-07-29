@@ -294,7 +294,7 @@ class ZMX2YAML:
                     **dict(zip(keys, dims, strict=False)),
                 }
 
-        return {"type": "ClearCircle", "x": decents[0], "y": decents[1], "radius": surface.DIAM / conv_coef}
+        return {"type": "ClearCircle", "x": decents[0], "y": decents[1], "radius": surface.DIAM / 2 / conv_coef}
 
     def build_dict_crds(self, surf_name: int | str) -> dict:
         """
