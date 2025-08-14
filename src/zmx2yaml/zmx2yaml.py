@@ -15,13 +15,6 @@ import os
 import sys
 from typing import TextIO
 
-logger = logging.getLogger(__name__)
-formatter = logging.Formatter("%(asctime)s - %(name)s - L%(lineno)s - %(levelname)s - %(message)s")
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-logger.setLevel("INFO")
-
 import numpy as np
 import yaml
 
@@ -30,6 +23,14 @@ from zmx2yaml.zmx_parsers import PrescriptionDataParser, SurfacePRD
 from .anchored_yaml import _ID_AND_NODE, _MEDIA, _NAME_AND_NODE, AnchorDumper, AnchoredValue
 from .glass_database import *
 from .local_types import _BATOID_AVAILABLE, ConstMedium, SellmeierMedium
+
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter("%(asctime)s - %(name)s - L%(lineno)s - %(levelname)s - %(message)s")
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+logger.setLevel("INFO")
+
 
 # Global medium for air
 if _BATOID_AVAILABLE:
@@ -294,7 +295,12 @@ class ZMX2YAML:
                     **dict(zip(keys, dims, strict=False)),
                 }
 
-        return {"type": "ClearCircle", "x": decents[0], "y": decents[1], "radius": surface.DIAM / 2 / conv_coef}
+        return {
+            "type": "ClearCircle",
+            "x": decents[0],
+            "y": decents[1],
+            "radius": surface.DIAM / 2 / conv_coef,
+        }
 
     def build_dict_crds(self, surf_name: int | str) -> dict:
         """

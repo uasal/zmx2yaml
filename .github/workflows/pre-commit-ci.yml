@@ -6,9 +6,9 @@ name: Run pre-commit hooks
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    types: [opened,reopened,edited,synchronize]
 
 jobs:
   pre-commit-ci:

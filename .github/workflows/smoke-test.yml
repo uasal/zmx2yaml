@@ -8,8 +8,9 @@ name: Unit test smoke test
 on:
 
   # Runs this workflow automatically
+  # only runs on Saturday at 6:45
   schedule:
-    - cron: 0 8 * * 6
+    - cron: 45 6 * * 6
     
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
