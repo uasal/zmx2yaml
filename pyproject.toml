@@ -99,6 +99,7 @@ omit=["src/zmx2yaml/_version.py"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+package-data = { "zmx2yaml" = ["AGF_files/*"] }
 
 [tool.setuptools.packages.find]
 where = ["src"]

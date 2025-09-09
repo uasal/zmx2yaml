@@ -35,9 +35,10 @@ from .local_types import _BATOID_AVAILABLE, ConstMedium, SellmeierMedium
 if _BATOID_AVAILABLE:
     import batoid
 
-    AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "AIR")
+    # AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "AIR")
+    AIR = AnchoredValue(batoid.vacuum, "AIR")  # Use batoid's vacuum medium
 else:
-    AIR = AnchoredValue(ConstMedium(1.000272), "AIR")
+    AIR = AnchoredValue(ConstMedium(1.0), "AIR")
 
 
 class ZMX2YAML:
@@ -102,6 +103,8 @@ class ZMX2YAML:
             self.field_bias = [str(x) if isinstance(x, int) else x for x in field_bias]
 
         self.conv_coef = 1000 if "Millimeters" in self.prd_file.unit else (1)  # Conversion to meters if not
+        # Medium cache: {(medium_tuple, anchor_name): AnchoredValue}
+        self._medium_cache = {}
 
     def extract_asphere_coefs(self, surface: SurfacePRD) -> list:
         """
@@ -233,8 +236,11 @@ class ZMX2YAML:
         conic = getattr(surface, "CONI", 0.0)
 
         if surface.TYPE == "STANDARD":
-            shape_type = "Paraboloid" if conic == -1 else "Quadric"
-            return {"type": shape_type, "R": r, "conic": conic}
+                shape_type = "Paraboloid" if conic == -1 else "Quadric"
+                if shape_type == "Paraboloid":
+                    return {"type": shape_type, "R": r}
+                else:
+                    return {"type": shape_type, "R": r, "conic": conic}
         elif surface.TYPE == "EVENASPH":
             coefs = self.extract_asphere_coefs(surface)
             return {"type": "Asphere", "imin": 1, "R": r, "conic": conic, "coefs": coefs}
@@ -274,6 +280,7 @@ class ZMX2YAML:
         surface = self.prd_file.surface(surf_name)
 
         obdc = getattr(surface, "OBDC", None)
+
         decents = list(map(float, obdc / conv_coef)) if obdc is not None else [0.0, 0.0]
         is_ap = getattr(surface, "ISAP", 1)
 
@@ -368,7 +375,7 @@ class ZMX2YAML:
             catalog_dict = globals().get(cat_upper)
             if catalog_dict and glas in catalog_dict:
                 agf_file = os.path.join(
-                    os.path.dirname(__file__), "..", "..", "AGF_files", catalog_dict[glas]
+                    os.path.dirname(__file__), "AGF_files", catalog_dict[glas]
                 )
                 found_catalog = cat_upper
                 break
@@ -376,10 +383,10 @@ class ZMX2YAML:
             raise ValueError(f"Glass {glas} not found in {' or '.join(glass_catalogs)}")
 
         # Delete unused catalog dicts from globals to free memory
-        for cat in glass_catalogs:
-            cat_upper = cat.upper()
-            if cat_upper != found_catalog and cat_upper in globals():
-                del globals()[cat_upper]
+        # for cat in glass_catalogs:
+        #     cat_upper = cat.upper()
+        #     if cat_upper != found_catalog and cat_upper in globals():
+        #         del globals()[cat_upper]
 
         # Parse the AGF file to find Sellmeier coefficients
         with open(agf_file, "r") as file:
@@ -425,7 +432,11 @@ class ZMX2YAML:
             glas_parts = glas.split()
             sellmeier_coefs = self.find_sellmeier_coefs(glas_parts[0], self.prd_file.glass_catalogs)
             logger.debug(f"Creating medium for glas={glas_parts[0]} with coefs={sellmeier_coefs}")
-            medium = AnchoredValue(self.medium(sellmeier_coefs), str(glas_parts[0]))
+            # Use a tuple for coefs to make it hashable
+            cache_key = (tuple(sellmeier_coefs), str(glas_parts[0]))
+            if cache_key not in self._medium_cache:
+                self._medium_cache[cache_key] = AnchoredValue(self.medium(sellmeier_coefs), str(glas_parts[0]))
+            medium = self._medium_cache[cache_key]
             logger.debug(f"medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}")
         else:
             medium = AIR
@@ -470,6 +481,7 @@ class ZMX2YAML:
         last_key = next(reversed(self.prd_file.surfaces))
         surf_name = self.prd_file.surfaces[last_key].name[0]
         surface = self.prd_file.surface(surf_name)
+
         return {
             "type": "Detector",
             "name": getattr(surface, "COMM", surf_name),
@@ -529,10 +541,17 @@ class ZMX2YAML:
         """
         conv_coef = self.conv_coef
         items = [self.build_dict_optc(surf) for surf in self.wanted_surf_list]
+
+        has_glas = lambda surface: getattr(surface, "GLAS", None)
+        is_refract = lambda glas: isinstance(glas, str) and glas is not None and not glas.startswith("MIRROR")
+        surfaces = [self.prd_file.surface(surf) for surf in self.wanted_surf_list]
+        are_refract = [is_refract(has_glas(surface)) for surface in surfaces]
+
         for i, (a, b) in enumerate(zip(items, items[1:], strict=False)):
             if a["type"] == "RefractiveInterface" and b["type"] == "RefractiveInterface":
-                b["obscuration"] = a["obscuration"]
-                items[i + 1] = self.insert_swapped_mediums(a, b)  # Reassign updated b
+                if are_refract[i] and not are_refract[i + 1]:
+                    b["obscuration"] = a["obscuration"]
+                    items[i + 1] = self.insert_swapped_mediums(a, b)  # Reassign updated b
         items.append(self.build_dict_dctr())
 
         return {
@@ -595,11 +614,14 @@ class ZMX2YAML:
         """
         id_to_name = {}
         for id_key, node in _ID_AND_NODE.items():
+            id_to_name[id_key] = []
             for name_key, name_node in _NAME_AND_NODE.items():
-                if node is name_node:
-                    id_to_name[id_key] = name_key
-                    break
+                if node == name_node:
+                    id_to_name[id_key].append(name_key)
         # Clear the global dictionaries
+        print('NAME and NODE', _NAME_AND_NODE.keys())
+        print()
+        print('ID and NODE', _ID_AND_NODE.keys())
         _NAME_AND_NODE.clear()
         _ID_AND_NODE.clear()
         _MEDIA.clear()
@@ -607,9 +629,10 @@ class ZMX2YAML:
         # Post-process YAML file to replace &idNNN and *idNNN with anchor names
         f.seek(0)  # Back to the start of the file
         yaml_str = f.read()
-        for id_key, name_key in id_to_name.items():
-            yaml_str = yaml_str.replace(f"&{id_key}", f"&{name_key}")
-            yaml_str = yaml_str.replace(f"*{id_key}", f"*{name_key}")
+        for id_key, name_keys in id_to_name.items():
+            for name_key in name_keys:
+                yaml_str = yaml_str.replace(f"&{id_key}", f"&{name_key}")
+                yaml_str = yaml_str.replace(f"*{id_key}", f"*{name_key}")
         f.seek(0)  # Back to the start of the file
         f.write(yaml_str)
         f.truncate()  # End of file truncation to remove old content (not necessary)
