@@ -122,7 +122,7 @@ class ZMX2YAML:
         """
         converted_params_corrected = [0.0] * 8  # r^2, r^4, r^6, r^8, r^10, r^12, r^14, r^16
         for key, value in surface.items():
-            if key.startswith("PARM"):
+            if key.startswith("PARM") and key != "PARM0":
                 index = int(key[4:])  # PARM1 -> index 1, PARM2 -> index 2, etc.
                 if index > 8:
                     break  # Stop after PARM8
@@ -130,6 +130,32 @@ class ZMX2YAML:
                 converted_value = value * (10**exponent)  # Apply conversion
                 converted_params_corrected[index - 1] = float(converted_value)
         return converted_params_corrected
+    
+    def extract_diffraction_coefs(self, surface: SurfacePRD) -> list:
+        """
+        Extract binary surface coefficients from a prescription surface and convert them.
+
+        Parameters
+        ----------
+        surface : SurfacePRD
+            The surface object containing asphere parameters.
+
+        Returns
+        -------
+        list
+            List of converted aspheric coefficients.
+        """
+        diff_order = int(getattr(surface, "PARM0", 1))
+        n_terms = int(getattr(surface, "XDAT1", 1))
+        diff_coefs = [0] * n_terms
+        norm_rad = getattr(surface, "XDAT2", 1.0) / self.conv_coef
+        for key, value in surface.items():
+            if key.startswith("XDAT") and key not in ("XDAT1", "XDAT2"):
+                index = int(key[4:]) - 2  # XDAT3 -> index 1, XDAT4 -> index 2, etc.
+                if index > n_terms:
+                    break
+                diff_coefs[index-1] = value * diff_order / (norm_rad ** (2 * index))
+        return diff_coefs
 
     def extract_zernike_coefs(self, surface: SurfacePRD) -> list:
         """
@@ -236,11 +262,11 @@ class ZMX2YAML:
         conic = getattr(surface, "CONI", 0.0)
 
         if surface.TYPE == "STANDARD":
-                shape_type = "Paraboloid" if conic == -1 else "Quadric"
-                if shape_type == "Paraboloid":
-                    return {"type": shape_type, "R": r}
-                else:
-                    return {"type": shape_type, "R": r, "conic": conic}
+            shape_type = "Paraboloid" if conic == -1 else ("Sphere" if conic == 0 else "Quadric")
+            if shape_type == "Paraboloid" or shape_type == "Sphere":
+                return {"type": shape_type, "R": r}
+            else:
+                return {"type": shape_type, "R": r, "conic": conic}
         elif surface.TYPE == "EVENASPH":
             coefs = self.extract_asphere_coefs(surface)
             return {"type": "Asphere", "imin": 1, "R": r, "conic": conic, "coefs": coefs}
@@ -258,6 +284,22 @@ class ZMX2YAML:
                 {"type": "Zernike", "coef": znk_coefs, "R_outer": norm_rad, "R_inner": 0.0},
             ]
             return {"type": "Sum", "items": surfaces}
+        elif surface.TYPE == "XPOLYNOM":
+            norm_rad = getattr(surface, "XDAT2", 0.0) / self.conv_coef
+            ply_coefs = [c / self.conv_coef for c in self.extract_zernike_coefs(surface)]
+
+            shape_type = "Paraboloid" if conic == -1 else ("Sphere" if conic == 0 else "Quadric")
+            base_surface = {"type": shape_type, "R": r}
+            if shape_type == "Quadric":
+                base_surface["conic"] = conic
+            surfaces = [
+                base_surface,
+                {"type": "XPolynom", "coef": ply_coefs, "R_norm": norm_rad},
+            ]
+            return {"type": "Sum", "items": surfaces}
+        elif surface.TYPE == "BINARY_2":
+            asph_coefs = self.extract_asphere_coefs(surface)
+            return {"type": "Asphere", "imin": 1, "R": r, "conic": conic, "coefs": asph_coefs}
 
         raise ValueError(f"Surface type {surface.TYPE} not handled")
 
@@ -407,7 +449,9 @@ class ZMX2YAML:
                     continue
         raise ValueError(f"Glass {glas} not found in {found_catalog or 'specified catalogs'}")
 
-    def build_dict_optc(self, surf_name: int | str) -> dict:
+    from typing import Generator
+
+    def build_dict_optc(self, surf_name: int | str) -> Generator[dict, None, None]:
         """
         Build an optical surface dictionary for a lens or mirror.
 
@@ -418,8 +462,8 @@ class ZMX2YAML:
 
         Returns
         -------
-        dict
-            Dictionary representing a Batoid optical surface.
+        Generator[dict, None, None]
+            Yields dictionaries representing Batoid optical surfaces.
         """
         surf_name = str(surf_name) if isinstance(surf_name, int) else (surf_name)
         surface = self.prd_file.surface(surf_name)
@@ -444,7 +488,7 @@ class ZMX2YAML:
                 f"Using AIR medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}"
             )
 
-        return {
+        yield {
             "type": "Mirror" if is_mirror else ("RefractiveInterface"),
             "name": getattr(surface, "COMM", surf_name),
             **({"inMedium": AIR, "outMedium": medium} if is_refact else {}),
@@ -452,6 +496,18 @@ class ZMX2YAML:
             "obscuration": self.build_dict_obsc(surf_name),
             "coordSys": self.build_dict_crds(surf_name),
         }
+        
+        if surface.TYPE == "BINARY_2":
+            bin_coefs = self.extract_diffraction_coefs(surface)
+            sag_screen = {"type": "Asphere", "imin": 1, "R": np.inf, "conic": 0, "coefs": bin_coefs}
+            yield {
+                "type": "OPDScreen",
+                "name": "diffraction_"+getattr(surface, "COMM", surf_name),
+                "surface": self.build_dict_surf(surf_name),
+                "screen": sag_screen,
+                "obscuration": self.build_dict_obsc(surf_name),
+                "coordSys": self.build_dict_crds(surf_name),
+            }
 
     def build_dict_stop(self) -> dict:
         """
@@ -516,7 +572,7 @@ class ZMX2YAML:
                 ),
                 **(
                     {"fieldBias": self.prd_file.surface(self.field_bias[0]).PARM3}
-                    if hasattr(self, "field_bias")
+                    if getattr(self, "field_bias", None) is not None
                     else {}
                 ),
                 "exitPupilSize": self.prd_file.exit_pupil_diameter / self.conv_coef,
@@ -540,7 +596,7 @@ class ZMX2YAML:
             The full Batoid optical system dictionary with nested elements.
         """
         conv_coef = self.conv_coef
-        items = [self.build_dict_optc(surf) for surf in self.wanted_surf_list]
+        items = [d for surf in self.wanted_surf_list for d in self.build_dict_optc(surf)]
 
         has_glas = lambda surface: getattr(surface, "GLAS", None)
         is_refract = lambda glas: isinstance(glas, str) and glas is not None and not glas.startswith("MIRROR")
@@ -560,7 +616,7 @@ class ZMX2YAML:
                 "inMedium": AIR,
                 "outMedium": AIR,
                 "medium": AIR,
-                "backDist": self.prd_file.entrance_pupil_position / conv_coef,
+                "backDist": -self.prd_file.entrance_pupil_position / conv_coef,
                 "sphereRadius": self.prd_file.exit_pupil_position / conv_coef,
                 "pupilSize": self.prd_file.entrance_pupil_diameter / conv_coef,
                 # 'pupilObscuration': 0.0,

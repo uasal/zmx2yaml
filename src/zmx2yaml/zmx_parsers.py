@@ -335,7 +335,7 @@ class PrescriptionDataParser:
                     current_surface.DISZ = disz
 
                     glas = surf_line[4]
-                    if glas:
+                    if glas and glas != '1.000000,0.000000':
                         current_surface.GLAS = surf_line[4]
 
                     diam = float(surf_line[5]) if is_float(surf_line[5]) else (None)
@@ -376,6 +376,7 @@ class PrescriptionDataParser:
         aper = [0.0, 0.0]  # aperture size
         parm = []  # parameters
         xdat = []  # additional parameters
+        parm0 = None  # PARM 0
         surf_type = None
 
         with open(self.file_path, "r") as file:
@@ -406,6 +407,8 @@ class PrescriptionDataParser:
                         if parm:
                             for j in range(len(parm)):
                                 setattr(current_surface, f"PARM{j + 1}", parm[j])
+                            if parm0 is not None:
+                                setattr(current_surface, "PARM0", parm0)
                         if xdat:
                             for j in range(len(xdat)):
                                 setattr(current_surface, f"XDAT{j + 1}", xdat[j])
@@ -416,6 +419,7 @@ class PrescriptionDataParser:
                         aper = [0.0, 0.0]
                         parm = []
                         xdat = []
+                        parm0 = None
                         surf_type = None
 
                         continue
@@ -435,15 +439,19 @@ class PrescriptionDataParser:
                             else:
                                 raise Exception("ERROR")
                         else:
-                            if key.startswith("Aperture"):
+                            if key == "Aperture":
                                 ap = value.split()[0]
 
                                 aperture_codes = {
                                     "Elliptical": "ELAP",
                                     "Rectangular": "SQAP",
                                     "Circular": "CLAP",
+                                    "User": "USER"
                                 }
                                 aper_type = aperture_codes.get(ap)
+
+                                if aper_type == "USER":
+                                    continue
 
                                 is_aper = value.split()[1].startswith("Aperture")
                                 continue
@@ -470,6 +478,8 @@ class PrescriptionDataParser:
                             if surf_type is not None and surf_type == "COORDBRK":
                                 if key.startswith("Order"):
                                     parm.append(0 if value == "Decenter then tilt" else (1))
+                                elif key.startswith("Coordinate Return Solve"):
+                                    continue
                                 else:
                                     parm.append(float(value))
                                 continue
@@ -490,6 +500,27 @@ class PrescriptionDataParser:
                                     or key.startswith("Normalization")
                                     or key.startswith("Zernike Term")
                                 ):
+                                    xdat.append(float(value))
+                                    continue
+                            elif surf_type is not None and surf_type == "XPOLYNOM":
+                                if (
+                                    key.startswith("Maximum term")
+                                    or key.startswith("Normalization")
+                                    or key.startswith("Coefficient")
+                                ):
+                                    xdat.append(float(value))
+                                    continue
+                            elif surf_type is not None and surf_type == "BINARY_2":
+                                if key.startswith("Diffraction"):
+                                    parm0 = int(value)
+                                    continue
+                                if key.startswith("Coefficient on r"):
+                                    parm.append(float(value))
+                                    continue
+                                if key.startswith("Maximum term"):
+                                    xdat.append(int(value))
+                                    continue
+                                if key.startswith("Normalization Radius") or key.startswith("Coefficient on p"):
                                     xdat.append(float(value))
                                     continue
                     else:

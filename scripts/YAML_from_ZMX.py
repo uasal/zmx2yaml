@@ -72,7 +72,7 @@ def main():
     parser.add_argument(
         "--field_bias",
         nargs="*",  # Zero or more arguments (optional)
-        default=[],
+        default=None,
         help="Optional list of field bias surface numbers. Space-separated list of int or str.",
     )
 
@@ -92,7 +92,7 @@ def main():
 
     wanted_surf_list = parse_intable_list(args.wanted_surf_list)
     enpp = parse_intable_list(args.enpp)
-    field_bias = parse_intable_list(args.field_bias)
+    field_bias = parse_intable_list(args.field_bias) if args.field_bias is not None else args.field_bias
 
     logger.debug(f"Processing file: {args.prd_file_name}")
 
