@@ -330,18 +330,30 @@ class ZMX2YAML:
             "CLAP": ("Annulus", ["inner", "outer"]),
             "ELAP": ("Ellipse", ["semi_major", "semi_minor"]),
             "SQAP": ("Rectangle", ["width", "height"]),
+            "USER": ("Polygon", ["xs", "ys"]),
         }
 
         for attr, (shape_type, keys) in shape_defs.items():
             data = getattr(surface, attr, None)
             if data is not None:
-                dims = list(map(float, data / conv_coef))
-                return {
-                    "type": "Clear" + shape_type if bool(is_ap) else ("Obsc" + shape_type),
-                    "x": decents[0],
-                    "y": decents[1],
-                    **dict(zip(keys, dims, strict=False)),
-                }
+                if attr == "USER":
+                    xs = [float(pt[0]) / conv_coef for pt in data]
+                    ys = [float(pt[1]) / conv_coef for pt in data]
+                    # Remove the last point (center point)
+                    xs, ys = xs[:-1], ys[:-1]
+                    dims = [xs, ys]
+                    return {
+                        "type": "Clear" + shape_type if bool(is_ap) else ("Obsc" + shape_type),
+                        **dict(zip(keys, dims, strict=False)),
+                    }
+                else:
+                    dims = list(map(float, data / conv_coef)) # convert np.float64 to float
+                    return {
+                        "type": "Clear" + shape_type if bool(is_ap) else ("Obsc" + shape_type),
+                        "x": decents[0],
+                        "y": decents[1],
+                        **dict(zip(keys, dims, strict=False)),
+                    }
 
         return {"type": "ClearCircle", "x": decents[0], "y": decents[1], "radius": surface.DIAM / 2 / conv_coef}
 

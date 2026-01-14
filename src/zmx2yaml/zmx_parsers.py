@@ -373,7 +373,7 @@ class PrescriptionDataParser:
         aper_type = None
         is_aper = None
         obdc = [0.0, 0.0]  # aperture decenter
-        aper = [0.0, 0.0]  # aperture size
+        aper: list = [0.0, 0.0]  # aperture size
         parm = []  # parameters
         xdat = []  # additional parameters
         parm0 = None  # PARM 0
@@ -416,7 +416,7 @@ class PrescriptionDataParser:
                         aper_type = None
                         is_aper = None
                         obdc = [0.0, 0.0]
-                        aper = [0.0, 0.0]
+                        aper: list = [0.0, 0.0]
                         parm = []
                         xdat = []
                         parm0 = None
@@ -451,6 +451,7 @@ class PrescriptionDataParser:
                                 aper_type = aperture_codes.get(ap)
 
                                 if aper_type == "USER":
+                                    aper.clear()
                                     continue
 
                                 is_aper = value.split()[1].startswith("Aperture")
@@ -468,12 +469,16 @@ class PrescriptionDataParser:
                             elif key.startswith("Y Half Width"):
                                 aper[1] = float(value) * 2 if aper_type == "SQAP" else (float(value))
                                 continue
+                            elif key.startswith("User Aperture Data"):
+                                aper.append([float(v) for v in value.split()])
+                                continue
 
                             if key.startswith("X- Decenter"):
                                 obdc[0] = float(value)
                                 continue
                             elif key.startswith("Y- Decenter"):
                                 obdc[1] = float(value)
+                                continue
 
                             if surf_type is not None and surf_type == "COORDBRK":
                                 if key.startswith("Order"):
