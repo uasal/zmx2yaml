@@ -36,9 +36,10 @@ logger.setLevel("INFO")
 if _BATOID_AVAILABLE:
     import batoid
 
-    AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "AIR")
+    # AIR = AnchoredValue(batoid.Air(pressure=101.325, temperature=293.15, h2o_pressure=2.33), "AIR")
+    AIR = AnchoredValue(batoid.vacuum, "AIR")  # Use batoid's vacuum medium
 else:
-    AIR = AnchoredValue(ConstMedium(1.000272), "AIR")
+    AIR = AnchoredValue(ConstMedium(1.0), "AIR")
 
 
 class ZMX2YAML:
@@ -103,6 +104,8 @@ class ZMX2YAML:
             self.field_bias = [str(x) if isinstance(x, int) else x for x in field_bias]
 
         self.conv_coef = 1000 if "Millimeters" in self.prd_file.unit else (1)  # Conversion to meters if not
+        # Medium cache: {(medium_tuple, anchor_name): AnchoredValue}
+        self._medium_cache = {}
 
     def extract_asphere_coefs(self, surface: SurfacePRD) -> list:
         """
@@ -120,7 +123,7 @@ class ZMX2YAML:
         """
         converted_params_corrected = [0.0] * 8  # r^2, r^4, r^6, r^8, r^10, r^12, r^14, r^16
         for key, value in surface.items():
-            if key.startswith("PARM"):
+            if key.startswith("PARM") and key != "PARM0":
                 index = int(key[4:])  # PARM1 -> index 1, PARM2 -> index 2, etc.
                 if index > 8:
                     break  # Stop after PARM8
@@ -128,6 +131,32 @@ class ZMX2YAML:
                 converted_value = value * (10**exponent)  # Apply conversion
                 converted_params_corrected[index - 1] = float(converted_value)
         return converted_params_corrected
+
+    def extract_diffraction_coefs(self, surface: SurfacePRD) -> list:
+        """
+        Extract binary surface coefficients from a prescription surface and convert them.
+
+        Parameters
+        ----------
+        surface : SurfacePRD
+            The surface object containing asphere parameters.
+
+        Returns
+        -------
+        list
+            List of converted aspheric coefficients.
+        """
+        diff_order = int(getattr(surface, "PARM0", 1))
+        n_terms = int(getattr(surface, "XDAT1", 1))
+        diff_coefs = [0] * n_terms
+        norm_rad = getattr(surface, "XDAT2", 1.0) / self.conv_coef
+        for key, value in surface.items():
+            if key.startswith("XDAT") and key not in ("XDAT1", "XDAT2"):
+                index = int(key[4:]) - 2  # XDAT3 -> index 1, XDAT4 -> index 2, etc.
+                if index > n_terms:
+                    break
+                diff_coefs[index - 1] = value * diff_order / (norm_rad ** (2 * index))
+        return diff_coefs
 
     def extract_zernike_coefs(self, surface: SurfacePRD) -> list:
         """
@@ -234,8 +263,11 @@ class ZMX2YAML:
         conic = getattr(surface, "CONI", 0.0)
 
         if surface.TYPE == "STANDARD":
-            shape_type = "Paraboloid" if conic == -1 else "Quadric"
-            return {"type": shape_type, "R": r, "conic": conic}
+            shape_type = "Paraboloid" if conic == -1 else ("Sphere" if conic == 0 else "Quadric")
+            if shape_type == "Paraboloid" or shape_type == "Sphere":
+                return {"type": shape_type, "R": r}
+            else:
+                return {"type": shape_type, "R": r, "conic": conic}
         elif surface.TYPE == "EVENASPH":
             coefs = self.extract_asphere_coefs(surface)
             return {"type": "Asphere", "imin": 1, "R": r, "conic": conic, "coefs": coefs}
@@ -253,6 +285,22 @@ class ZMX2YAML:
                 {"type": "Zernike", "coef": znk_coefs, "R_outer": norm_rad, "R_inner": 0.0},
             ]
             return {"type": "Sum", "items": surfaces}
+        elif surface.TYPE == "XPOLYNOM":
+            norm_rad = getattr(surface, "XDAT2", 0.0) / self.conv_coef
+            ply_coefs = [c / self.conv_coef for c in self.extract_zernike_coefs(surface)]
+
+            shape_type = "Paraboloid" if conic == -1 else ("Sphere" if conic == 0 else "Quadric")
+            base_surface = {"type": shape_type, "R": r}
+            if shape_type == "Quadric":
+                base_surface["conic"] = conic
+            surfaces = [
+                base_surface,
+                {"type": "XPolynom", "coef": ply_coefs, "R_norm": norm_rad},
+            ]
+            return {"type": "Sum", "items": surfaces}
+        elif surface.TYPE == "BINARY_2":
+            asph_coefs = self.extract_asphere_coefs(surface)
+            return {"type": "Asphere", "imin": 1, "R": r, "conic": conic, "coefs": asph_coefs}
 
         raise ValueError(f"Surface type {surface.TYPE} not handled")
 
@@ -275,6 +323,7 @@ class ZMX2YAML:
         surface = self.prd_file.surface(surf_name)
 
         obdc = getattr(surface, "OBDC", None)
+
         decents = list(map(float, obdc / conv_coef)) if obdc is not None else [0.0, 0.0]
         is_ap = getattr(surface, "ISAP", 1)
 
@@ -282,18 +331,30 @@ class ZMX2YAML:
             "CLAP": ("Annulus", ["inner", "outer"]),
             "ELAP": ("Ellipse", ["semi_major", "semi_minor"]),
             "SQAP": ("Rectangle", ["width", "height"]),
+            "USER": ("Polygon", ["xs", "ys"]),
         }
 
         for attr, (shape_type, keys) in shape_defs.items():
             data = getattr(surface, attr, None)
             if data is not None:
-                dims = list(map(float, data / conv_coef))
-                return {
-                    "type": "Clear" + shape_type if bool(is_ap) else ("Obsc" + shape_type),
-                    "x": decents[0],
-                    "y": decents[1],
-                    **dict(zip(keys, dims, strict=False)),
-                }
+                if attr == "USER":
+                    xs = [float(pt[0]) / conv_coef for pt in data]
+                    ys = [float(pt[1]) / conv_coef for pt in data]
+                    # Remove the last point (center point)
+                    xs, ys = xs[:-1], ys[:-1]
+                    dims = [xs, ys]
+                    return {
+                        "type": "Clear" + shape_type if bool(is_ap) else ("Obsc" + shape_type),
+                        **dict(zip(keys, dims, strict=False)),
+                    }
+                else:
+                    dims = list(map(float, data / conv_coef))  # convert np.float64 to float
+                    return {
+                        "type": "Clear" + shape_type if bool(is_ap) else ("Obsc" + shape_type),
+                        "x": decents[0],
+                        "y": decents[1],
+                        **dict(zip(keys, dims, strict=False)),
+                    }
 
         return {
             "type": "ClearCircle",
@@ -373,19 +434,17 @@ class ZMX2YAML:
             cat_upper = cat.upper()
             catalog_dict = globals().get(cat_upper)
             if catalog_dict and glas in catalog_dict:
-                agf_file = os.path.join(
-                    os.path.dirname(__file__), "..", "..", "AGF_files", catalog_dict[glas]
-                )
+                agf_file = os.path.join(os.path.dirname(__file__), "AGF_files", catalog_dict[glas])
                 found_catalog = cat_upper
                 break
         if agf_file is None:
             raise ValueError(f"Glass {glas} not found in {' or '.join(glass_catalogs)}")
 
         # Delete unused catalog dicts from globals to free memory
-        for cat in glass_catalogs:
-            cat_upper = cat.upper()
-            if cat_upper != found_catalog and cat_upper in globals():
-                del globals()[cat_upper]
+        # for cat in glass_catalogs:
+        #     cat_upper = cat.upper()
+        #     if cat_upper != found_catalog and cat_upper in globals():
+        #         del globals()[cat_upper]
 
         # Parse the AGF file to find Sellmeier coefficients
         with open(agf_file, "r") as file:
@@ -406,7 +465,9 @@ class ZMX2YAML:
                     continue
         raise ValueError(f"Glass {glas} not found in {found_catalog or 'specified catalogs'}")
 
-    def build_dict_optc(self, surf_name: int | str) -> dict:
+    from typing import Generator
+
+    def build_dict_optc(self, surf_name: int | str) -> Generator[dict, None, None]:
         """
         Build an optical surface dictionary for a lens or mirror.
 
@@ -417,8 +478,8 @@ class ZMX2YAML:
 
         Returns
         -------
-        dict
-            Dictionary representing a Batoid optical surface.
+        Generator[dict, None, None]
+            Yields dictionaries representing Batoid optical surfaces.
         """
         surf_name = str(surf_name) if isinstance(surf_name, int) else (surf_name)
         surface = self.prd_file.surface(surf_name)
@@ -431,7 +492,13 @@ class ZMX2YAML:
             glas_parts = glas.split()
             sellmeier_coefs = self.find_sellmeier_coefs(glas_parts[0], self.prd_file.glass_catalogs)
             logger.debug(f"Creating medium for glas={glas_parts[0]} with coefs={sellmeier_coefs}")
-            medium = AnchoredValue(self.medium(sellmeier_coefs), str(glas_parts[0]))
+            # Use a tuple for coefs to make it hashable
+            cache_key = (tuple(sellmeier_coefs), str(glas_parts[0]))
+            if cache_key not in self._medium_cache:
+                self._medium_cache[cache_key] = AnchoredValue(
+                    self.medium(sellmeier_coefs), str(glas_parts[0])
+                )
+            medium = self._medium_cache[cache_key]
             logger.debug(f"medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}")
         else:
             medium = AIR
@@ -439,7 +506,7 @@ class ZMX2YAML:
                 f"Using AIR medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}"
             )
 
-        return {
+        yield {
             "type": "Mirror" if is_mirror else ("RefractiveInterface"),
             "name": getattr(surface, "COMM", surf_name),
             **({"inMedium": AIR, "outMedium": medium} if is_refact else {}),
@@ -447,6 +514,18 @@ class ZMX2YAML:
             "obscuration": self.build_dict_obsc(surf_name),
             "coordSys": self.build_dict_crds(surf_name),
         }
+
+        if surface.TYPE == "BINARY_2":
+            bin_coefs = self.extract_diffraction_coefs(surface)
+            sag_screen = {"type": "Asphere", "imin": 1, "R": np.inf, "conic": 0, "coefs": bin_coefs}
+            yield {
+                "type": "OPDScreen",
+                "name": "diffraction_" + getattr(surface, "COMM", surf_name),
+                "surface": self.build_dict_surf(surf_name),
+                "screen": sag_screen,
+                "obscuration": self.build_dict_obsc(surf_name),
+                "coordSys": self.build_dict_crds(surf_name),
+            }
 
     def build_dict_stop(self) -> dict:
         """
@@ -476,6 +555,7 @@ class ZMX2YAML:
         last_key = next(reversed(self.prd_file.surfaces))
         surf_name = self.prd_file.surfaces[last_key].name[0]
         surface = self.prd_file.surface(surf_name)
+
         return {
             "type": "Detector",
             "name": getattr(surface, "COMM", surf_name),
@@ -510,7 +590,7 @@ class ZMX2YAML:
                 ),
                 **(
                     {"fieldBias": self.prd_file.surface(self.field_bias[0]).PARM3}
-                    if hasattr(self, "field_bias")
+                    if getattr(self, "field_bias", None) is not None
                     else {}
                 ),
                 "exitPupilSize": self.prd_file.exit_pupil_diameter / self.conv_coef,
@@ -534,11 +614,18 @@ class ZMX2YAML:
             The full Batoid optical system dictionary with nested elements.
         """
         conv_coef = self.conv_coef
-        items = [self.build_dict_optc(surf) for surf in self.wanted_surf_list]
+        items = [d for surf in self.wanted_surf_list for d in self.build_dict_optc(surf)]
+
+        has_glas = lambda surface: getattr(surface, "GLAS", None)
+        is_refract = lambda glas: isinstance(glas, str) and glas is not None and not glas.startswith("MIRROR")
+        surfaces = [self.prd_file.surface(surf) for surf in self.wanted_surf_list]
+        are_refract = [is_refract(has_glas(surface)) for surface in surfaces]
+
         for i, (a, b) in enumerate(zip(items, items[1:], strict=False)):
             if a["type"] == "RefractiveInterface" and b["type"] == "RefractiveInterface":
-                b["obscuration"] = a["obscuration"]
-                items[i + 1] = self.insert_swapped_mediums(a, b)  # Reassign updated b
+                if are_refract[i] and not are_refract[i + 1]:
+                    b["obscuration"] = a["obscuration"]
+                    items[i + 1] = self.insert_swapped_mediums(a, b)  # Reassign updated b
         items.append(self.build_dict_dctr())
 
         return {
@@ -547,7 +634,7 @@ class ZMX2YAML:
                 "inMedium": AIR,
                 "outMedium": AIR,
                 "medium": AIR,
-                "backDist": self.prd_file.entrance_pupil_position / conv_coef,
+                "backDist": -self.prd_file.entrance_pupil_position / conv_coef,
                 "sphereRadius": self.prd_file.exit_pupil_position / conv_coef,
                 "pupilSize": self.prd_file.entrance_pupil_diameter / conv_coef,
                 # 'pupilObscuration': 0.0,
@@ -601,11 +688,14 @@ class ZMX2YAML:
         """
         id_to_name = {}
         for id_key, node in _ID_AND_NODE.items():
+            id_to_name[id_key] = []
             for name_key, name_node in _NAME_AND_NODE.items():
-                if node is name_node:
-                    id_to_name[id_key] = name_key
-                    break
+                if node == name_node:
+                    id_to_name[id_key].append(name_key)
         # Clear the global dictionaries
+        print("NAME and NODE", _NAME_AND_NODE.keys())
+        print()
+        print("ID and NODE", _ID_AND_NODE.keys())
         _NAME_AND_NODE.clear()
         _ID_AND_NODE.clear()
         _MEDIA.clear()
@@ -613,9 +703,10 @@ class ZMX2YAML:
         # Post-process YAML file to replace &idNNN and *idNNN with anchor names
         f.seek(0)  # Back to the start of the file
         yaml_str = f.read()
-        for id_key, name_key in id_to_name.items():
-            yaml_str = yaml_str.replace(f"&{id_key}", f"&{name_key}")
-            yaml_str = yaml_str.replace(f"*{id_key}", f"*{name_key}")
+        for id_key, name_keys in id_to_name.items():
+            for name_key in name_keys:
+                yaml_str = yaml_str.replace(f"&{id_key}", f"&{name_key}")
+                yaml_str = yaml_str.replace(f"*{id_key}", f"*{name_key}")
         f.seek(0)  # Back to the start of the file
         f.write(yaml_str)
         f.truncate()  # End of file truncation to remove old content (not necessary)

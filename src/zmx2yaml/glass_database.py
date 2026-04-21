@@ -1,3 +1,7 @@
+# Glass name-to-AGF-file mapping database.
+# AGF catalog data derived from: https://github.com/nzhagen/zemaxglass/tree/master
+# See AGF_files/NOTICE for license details.
+
 ARCHER = {
     "S-BAL3M": "archer.agf",
     "L-BAL35M": "archer.agf",
@@ -1629,6 +1633,7 @@ OHARA = {
     "S-LAH60MQ": "ohara.agf",
     "S-LAL7Q": "ohara.agf",
     "S-NBH58": "ohara.agf",
+    "S-BAL35R": "ohara.agf",
     "S-NPH7": "ohara.agf",
     "S-LAL21": "ohara.agf",
     "S-LAH99": "ohara.agf",
@@ -2202,6 +2207,7 @@ SCHOTT = {
     "N-ZK7": "schott.agf",
     "N-ZK7A": "schott.agf",
     "P-BK7": "schott.agf",
+    "BK7": "schott.agf",
     "P-LAF37": "schott.agf",
     "P-LAK35": "schott.agf",
     "P-LASF47": "schott.agf",

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-agf_dir = Path("AGF_files")
+agf_dir = Path("src/zmx2yaml/AGF_files")
 
 def read_glass_entries(file_path: Path) -> dict:
     for encoding in ("utf-8", "utf-16"):
@@ -19,7 +19,7 @@ def read_glass_entries(file_path: Path) -> dict:
 all_glass_lines = []
 for agf_file in sorted(agf_dir.glob("*.agf")):
     glass_dict = read_glass_entries(agf_file)
-    var_name = f"GLASS_DATABASE_{agf_file.stem.upper()}"
+    var_name = f"{agf_file.stem.upper()}"
     all_glass_lines.append(f"{var_name} = {{")
     for glass, filename in glass_dict.items():
         all_glass_lines.append(f"    '{glass}': '{filename}',")

@@ -37,6 +37,8 @@ def main():
     >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Ultramarine_Mark-11_DKim1_Release_HChoi02_prescriptiondata.txt 7 8 9 11 tests/test_data/UM.yaml --enpp 3 --field_bias 5
     >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Lazuli_Mark-14_release_17_config1.txt 7 8 15 17 26 27 tests/test_data/UM.yaml --enpp 3 --field_bias 5
 
+    >>> python3 scripts/YAML_from_ZMX.py tests/test_data/Lazuli_Mark-14_17_ESC07_HK02_2_KVG_HChoi08_HK01_conf2.txt 3 7 8 11 15 17 26 27 33 43 45 50 53 54 59 63 67 69 71 72 73 74 79 82 83 89 98 99 104 105 106 107 110 113 tests/test_data/Lazuli_Mark-14_17_ESC07_HK02_2_KVG_HChoi08_HK01_conf2.yaml --enpp 3 --field_bias 5
+
     Script that creates YAML file from Zemax prescription data TXT file.
     """
     parser = argparse.ArgumentParser(
@@ -70,7 +72,7 @@ def main():
     parser.add_argument(
         "--field_bias",
         nargs="*",  # Zero or more arguments (optional)
-        default=[],
+        default=None,
         help="Optional list of field bias surface numbers. Space-separated list of int or str.",
     )
 
@@ -90,7 +92,7 @@ def main():
 
     wanted_surf_list = parse_intable_list(args.wanted_surf_list)
     enpp = parse_intable_list(args.enpp)
-    field_bias = parse_intable_list(args.field_bias)
+    field_bias = parse_intable_list(args.field_bias) if args.field_bias is not None else args.field_bias
 
     logger.debug(f"Processing file: {args.prd_file_name}")
 

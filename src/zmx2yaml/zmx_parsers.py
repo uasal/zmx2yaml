@@ -277,9 +277,12 @@ class PrescriptionDataParser:
                     return True  # it's a float
             return False
 
+        def unique_preserve_order(seq):
+            seen = set()
+            return [x for x in seq if not (x in seen or seen.add(x))]
+
         surfaces = {}
         surface_i = 0  # count surfaces
-        surface_nb = self.surface_nb  # total number of surfaces
 
         offset_i = 1  # count lines to ignore
 
@@ -304,47 +307,58 @@ class PrescriptionDataParser:
                     if offset_i <= 1:
                         offset_i += 1
                         continue
-                    if surface_i <= surface_nb:
-                        key_parts = key.split("\t")
-                        surf_line = key_parts + [""] if len(key_parts) == 9 else (key_parts)
-                        surf_line = [s.replace(" ", "") for s in surf_line[:-1]] + [surf_line[-1].strip()]
+                    # if surface_i <= surface_nb:
+                    key_parts = key.split("\t")
+                    surf_line = key_parts + [""] if len(key_parts) == 9 else (key_parts)
+                    surf_line = [s.replace(" ", "") for s in surf_line[:-1]] + [surf_line[-1].strip()]
 
-                        name = (
-                            [str(surface_i), surf_line[0]]
-                            if not surf_line[-1]
-                            else [str(surface_i), surf_line[0], surf_line[-1]]
-                        )
-                        current_surface = SurfacePRD(name=list(set(name)))
-
-                        current_surface.TYPE = surf_line[1]
-
-                        curv = 1 / float(surf_line[2]) if is_float(surf_line[2]) else (0.0)
-                        current_surface.CURV = curv
-
-                        disz = float(surf_line[3]) if is_float(surf_line[3]) else (0.0)
-                        current_surface.DISZ = disz
-
-                        glas = surf_line[4]
-                        if glas:
-                            current_surface.GLAS = surf_line[4]
-
-                        diam = float(surf_line[5]) if is_float(surf_line[5]) else (None)
-                        if diam is not None:
-                            current_surface.DIAM = diam
-
-                        coni = float(surf_line[-2]) if is_float(surf_line[-2]) else (None)
-                        if coni is not None:
-                            current_surface.CONI = coni
-
-                        comm = surf_line[-1] + ":" + value if value else (surf_line[-1])
-                        if comm:
-                            current_surface.COMM = comm
-
-                        surfaces[str(surface_i)] = current_surface
-
+                    if surf_line[0] == "OBJ":
+                        surface_i = 0
+                    elif surf_line[0] == "IMA" or surf_line[0] == "STO":
                         surface_i += 1
                     else:
+                        surface_i = int(surf_line[0])
+
+                    name = (
+                        [str(surface_i), surf_line[0]]
+                        if not surf_line[-1]
+                        else [str(surface_i), surf_line[0], surf_line[-1]]
+                    )
+                    current_surface = SurfacePRD(name=unique_preserve_order(name))
+
+                    current_surface.TYPE = surf_line[1]
+
+                    curv = 1 / float(surf_line[2]) if is_float(surf_line[2]) else (0.0)
+                    current_surface.CURV = curv
+
+                    disz = float(surf_line[3]) if is_float(surf_line[3]) else (0.0)
+                    current_surface.DISZ = disz
+
+                    glas = surf_line[4]
+                    if glas and glas != "1.000000,0.000000":
+                        current_surface.GLAS = surf_line[4]
+
+                    diam = float(surf_line[5]) if is_float(surf_line[5]) else (None)
+                    if diam is not None:
+                        current_surface.DIAM = diam
+
+                    coni = float(surf_line[-2]) if is_float(surf_line[-2]) else (None)
+                    if coni is not None:
+                        current_surface.CONI = coni
+
+                    comm = surf_line[-1] + ":" + value if value else (surf_line[-1])
+                    if comm:
+                        # Check for duplicate COMM values
+                        comms = [s.COMM for s in surfaces.values() if hasattr(s, "COMM")]
+                        if comm in comms:
+                            comm = "(bis) " + comm
+                        current_surface.COMM = comm
+
+                    surfaces[str(surface_i)] = current_surface
+
+                    if surf_line[0] == "IMA":
                         break
+
         self.surfaces = surfaces
 
     def extract_surface_details(self):
@@ -359,9 +373,10 @@ class PrescriptionDataParser:
         aper_type = None
         is_aper = None
         obdc = [0.0, 0.0]  # aperture decenter
-        aper = [0.0, 0.0]  # aperture size
+        aper: list = [0.0, 0.0]  # aperture size
         parm = []  # parameters
         xdat = []  # additional parameters
+        parm0 = None  # PARM 0
         surf_type = None
 
         with open(self.file_path, "r") as file:
@@ -392,6 +407,8 @@ class PrescriptionDataParser:
                         if parm:
                             for j in range(len(parm)):
                                 setattr(current_surface, f"PARM{j + 1}", parm[j])
+                            if parm0 is not None:
+                                setattr(current_surface, "PARM0", parm0)
                         if xdat:
                             for j in range(len(xdat)):
                                 setattr(current_surface, f"XDAT{j + 1}", xdat[j])
@@ -399,32 +416,45 @@ class PrescriptionDataParser:
                         aper_type = None
                         is_aper = None
                         obdc = [0.0, 0.0]
-                        aper = [0.0, 0.0]
+                        aper: list = [0.0, 0.0]
                         parm = []
                         xdat = []
+                        parm0 = None
                         surf_type = None
 
-                        surface_i += 1
                         continue
                     if surface_i <= surface_nb:
                         if key.startswith("Surface"):
-                            if key.split()[1] in self.surfaces[str(surface_i)].name:
+                            key_parts = key.split()
+                            if key_parts[1] == "OBJ":
+                                surface_i = 0
+                            elif key_parts[1] == "IMA" or key_parts[1] == "STO":
+                                surface_i += 1
+                            else:
+                                surface_i = int(key_parts[1])
+
+                            if key_parts[1] in self.surfaces[str(surface_i)].name:
                                 surf_type = self.surfaces[str(surface_i)].TYPE
                                 continue
                             else:
                                 raise Exception("ERROR")
                         else:
-                            if key.startswith("Aperture"):
+                            if key == "Aperture":
                                 ap = value.split()[0]
 
                                 aperture_codes = {
                                     "Elliptical": "ELAP",
                                     "Rectangular": "SQAP",
                                     "Circular": "CLAP",
+                                    "User": "USER",
                                 }
                                 aper_type = aperture_codes.get(ap)
 
-                                is_aper = value.split()[1] == "Aperture"
+                                if aper_type == "USER":
+                                    aper.clear()
+                                    continue
+
+                                is_aper = value.split()[1].startswith("Aperture")
                                 continue
 
                             if key.startswith("Minimum Radius"):
@@ -439,16 +469,22 @@ class PrescriptionDataParser:
                             elif key.startswith("Y Half Width"):
                                 aper[1] = float(value) * 2 if aper_type == "SQAP" else (float(value))
                                 continue
+                            elif key.startswith("User Aperture Data"):
+                                aper.append([float(v) for v in value.split()])
+                                continue
 
                             if key.startswith("X- Decenter"):
                                 obdc[0] = float(value)
                                 continue
                             elif key.startswith("Y- Decenter"):
                                 obdc[1] = float(value)
+                                continue
 
                             if surf_type is not None and surf_type == "COORDBRK":
                                 if key.startswith("Order"):
                                     parm.append(0 if value == "Decenter then tilt" else (1))
+                                elif key.startswith("Coordinate Return Solve"):
+                                    continue
                                 else:
                                     parm.append(float(value))
                                 continue
@@ -468,6 +504,29 @@ class PrescriptionDataParser:
                                     key.startswith("Number")
                                     or key.startswith("Normalization")
                                     or key.startswith("Zernike Term")
+                                ):
+                                    xdat.append(float(value))
+                                    continue
+                            elif surf_type is not None and surf_type == "XPOLYNOM":
+                                if (
+                                    key.startswith("Maximum term")
+                                    or key.startswith("Normalization")
+                                    or key.startswith("Coefficient")
+                                ):
+                                    xdat.append(float(value))
+                                    continue
+                            elif surf_type is not None and surf_type == "BINARY_2":
+                                if key.startswith("Diffraction"):
+                                    parm0 = int(value)
+                                    continue
+                                if key.startswith("Coefficient on r"):
+                                    parm.append(float(value))
+                                    continue
+                                if key.startswith("Maximum term"):
+                                    xdat.append(int(value))
+                                    continue
+                                if key.startswith("Normalization Radius") or key.startswith(
+                                    "Coefficient on p"
                                 ):
                                     xdat.append(float(value))
                                     continue
@@ -506,17 +565,17 @@ class PrescriptionDataParser:
                             air_index_ref = float(value.split()[0])
                         offset_i += 1
                         continue
-                    if surface_i <= surface_nb:
-                        key_parts = key.split("\t")
-                        current_surface = self.surfaces[str(surface_i)]
-                        if key_parts[0].strip() in current_surface.name:
-                            has_glas = hasattr(current_surface, "GLAS")
-                        if has_glas and current_surface.GLAS != "MIRROR":
-                            # index is referred to air index
-                            index = float(key_parts[4].strip()) + (air_index_ref - 1.0)
-                            current_surface.GLAS = " ".join([current_surface.GLAS, str(index)])
-                        surface_i += 1
-                    else:
+                    surface_i = int(key.split("\t")[0])
+                    key_parts = key.split("\t")
+                    current_surface = self.surfaces[str(surface_i)]
+                    if key_parts[0].strip() in current_surface.name:
+                        has_glas = hasattr(current_surface, "GLAS")
+                    if has_glas and current_surface.GLAS != "MIRROR":
+                        # index is referred to air index
+                        index = float(key_parts[4].strip()) + (air_index_ref - 1.0)
+                        current_surface.GLAS = " ".join([current_surface.GLAS, str(index)])
+
+                    if surface_i == surface_nb:
                         break
 
     def extract_multi_configurations(self):
