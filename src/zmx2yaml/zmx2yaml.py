@@ -130,7 +130,7 @@ class ZMX2YAML:
                 converted_value = value * (10**exponent)  # Apply conversion
                 converted_params_corrected[index - 1] = float(converted_value)
         return converted_params_corrected
-    
+
     def extract_diffraction_coefs(self, surface: SurfacePRD) -> list:
         """
         Extract binary surface coefficients from a prescription surface and convert them.
@@ -154,7 +154,7 @@ class ZMX2YAML:
                 index = int(key[4:]) - 2  # XDAT3 -> index 1, XDAT4 -> index 2, etc.
                 if index > n_terms:
                     break
-                diff_coefs[index-1] = value * diff_order / (norm_rad ** (2 * index))
+                diff_coefs[index - 1] = value * diff_order / (norm_rad ** (2 * index))
         return diff_coefs
 
     def extract_zernike_coefs(self, surface: SurfacePRD) -> list:
@@ -347,7 +347,7 @@ class ZMX2YAML:
                         **dict(zip(keys, dims, strict=False)),
                     }
                 else:
-                    dims = list(map(float, data / conv_coef)) # convert np.float64 to float
+                    dims = list(map(float, data / conv_coef))  # convert np.float64 to float
                     return {
                         "type": "Clear" + shape_type if bool(is_ap) else ("Obsc" + shape_type),
                         "x": decents[0],
@@ -355,7 +355,12 @@ class ZMX2YAML:
                         **dict(zip(keys, dims, strict=False)),
                     }
 
-        return {"type": "ClearCircle", "x": decents[0], "y": decents[1], "radius": surface.DIAM / 2 / conv_coef}
+        return {
+            "type": "ClearCircle",
+            "x": decents[0],
+            "y": decents[1],
+            "radius": surface.DIAM / 2 / conv_coef,
+        }
 
     def build_dict_crds(self, surf_name: int | str) -> dict:
         """
@@ -428,9 +433,7 @@ class ZMX2YAML:
             cat_upper = cat.upper()
             catalog_dict = globals().get(cat_upper)
             if catalog_dict and glas in catalog_dict:
-                agf_file = os.path.join(
-                    os.path.dirname(__file__), "AGF_files", catalog_dict[glas]
-                )
+                agf_file = os.path.join(os.path.dirname(__file__), "AGF_files", catalog_dict[glas])
                 found_catalog = cat_upper
                 break
         if agf_file is None:
@@ -491,7 +494,9 @@ class ZMX2YAML:
             # Use a tuple for coefs to make it hashable
             cache_key = (tuple(sellmeier_coefs), str(glas_parts[0]))
             if cache_key not in self._medium_cache:
-                self._medium_cache[cache_key] = AnchoredValue(self.medium(sellmeier_coefs), str(glas_parts[0]))
+                self._medium_cache[cache_key] = AnchoredValue(
+                    self.medium(sellmeier_coefs), str(glas_parts[0])
+                )
             medium = self._medium_cache[cache_key]
             logger.debug(f"medium type={type(medium.value)} anchor={medium.anchor_name} value={medium.value}")
         else:
@@ -508,13 +513,13 @@ class ZMX2YAML:
             "obscuration": self.build_dict_obsc(surf_name),
             "coordSys": self.build_dict_crds(surf_name),
         }
-        
+
         if surface.TYPE == "BINARY_2":
             bin_coefs = self.extract_diffraction_coefs(surface)
             sag_screen = {"type": "Asphere", "imin": 1, "R": np.inf, "conic": 0, "coefs": bin_coefs}
             yield {
                 "type": "OPDScreen",
-                "name": "diffraction_"+getattr(surface, "COMM", surf_name),
+                "name": "diffraction_" + getattr(surface, "COMM", surf_name),
                 "surface": self.build_dict_surf(surf_name),
                 "screen": sag_screen,
                 "obscuration": self.build_dict_obsc(surf_name),
@@ -687,9 +692,9 @@ class ZMX2YAML:
                 if node == name_node:
                     id_to_name[id_key].append(name_key)
         # Clear the global dictionaries
-        print('NAME and NODE', _NAME_AND_NODE.keys())
+        print("NAME and NODE", _NAME_AND_NODE.keys())
         print()
-        print('ID and NODE', _ID_AND_NODE.keys())
+        print("ID and NODE", _ID_AND_NODE.keys())
         _NAME_AND_NODE.clear()
         _ID_AND_NODE.clear()
         _MEDIA.clear()

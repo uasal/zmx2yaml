@@ -276,7 +276,7 @@ class PrescriptionDataParser:
                 if left.lstrip("+-").isdigit() and right.isdigit():
                     return True  # it's a float
             return False
-        
+
         def unique_preserve_order(seq):
             seen = set()
             return [x for x in seq if not (x in seen or seen.add(x))]
@@ -312,9 +312,9 @@ class PrescriptionDataParser:
                     surf_line = key_parts + [""] if len(key_parts) == 9 else (key_parts)
                     surf_line = [s.replace(" ", "") for s in surf_line[:-1]] + [surf_line[-1].strip()]
 
-                    if surf_line[0] == 'OBJ':
+                    if surf_line[0] == "OBJ":
                         surface_i = 0
-                    elif surf_line[0] == 'IMA' or surf_line[0] == 'STO':
+                    elif surf_line[0] == "IMA" or surf_line[0] == "STO":
                         surface_i += 1
                     else:
                         surface_i = int(surf_line[0])
@@ -325,7 +325,7 @@ class PrescriptionDataParser:
                         else [str(surface_i), surf_line[0], surf_line[-1]]
                     )
                     current_surface = SurfacePRD(name=unique_preserve_order(name))
-                    
+
                     current_surface.TYPE = surf_line[1]
 
                     curv = 1 / float(surf_line[2]) if is_float(surf_line[2]) else (0.0)
@@ -335,7 +335,7 @@ class PrescriptionDataParser:
                     current_surface.DISZ = disz
 
                     glas = surf_line[4]
-                    if glas and glas != '1.000000,0.000000':
+                    if glas and glas != "1.000000,0.000000":
                         current_surface.GLAS = surf_line[4]
 
                     diam = float(surf_line[5]) if is_float(surf_line[5]) else (None)
@@ -356,7 +356,7 @@ class PrescriptionDataParser:
 
                     surfaces[str(surface_i)] = current_surface
 
-                    if surf_line[0] == 'IMA':
+                    if surf_line[0] == "IMA":
                         break
 
         self.surfaces = surfaces
@@ -426,9 +426,9 @@ class PrescriptionDataParser:
                     if surface_i <= surface_nb:
                         if key.startswith("Surface"):
                             key_parts = key.split()
-                            if key_parts[1] == 'OBJ':
+                            if key_parts[1] == "OBJ":
                                 surface_i = 0
-                            elif key_parts[1] == 'IMA' or key_parts[1] == 'STO':
+                            elif key_parts[1] == "IMA" or key_parts[1] == "STO":
                                 surface_i += 1
                             else:
                                 surface_i = int(key_parts[1])
@@ -446,7 +446,7 @@ class PrescriptionDataParser:
                                     "Elliptical": "ELAP",
                                     "Rectangular": "SQAP",
                                     "Circular": "CLAP",
-                                    "User": "USER"
+                                    "User": "USER",
                                 }
                                 aper_type = aperture_codes.get(ap)
 
@@ -525,7 +525,9 @@ class PrescriptionDataParser:
                                 if key.startswith("Maximum term"):
                                     xdat.append(int(value))
                                     continue
-                                if key.startswith("Normalization Radius") or key.startswith("Coefficient on p"):
+                                if key.startswith("Normalization Radius") or key.startswith(
+                                    "Coefficient on p"
+                                ):
                                     xdat.append(float(value))
                                     continue
                     else:
@@ -572,7 +574,7 @@ class PrescriptionDataParser:
                         # index is referred to air index
                         index = float(key_parts[4].strip()) + (air_index_ref - 1.0)
                         current_surface.GLAS = " ".join([current_surface.GLAS, str(index)])
-                        
+
                     if surface_i == surface_nb:
                         break
 
