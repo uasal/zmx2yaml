@@ -1,3 +1,7 @@
+# Glass name-to-AGF-file mapping database.
+# AGF catalog data derived from: https://github.com/nzhagen/zemaxglass/tree/master
+# See AGF_files/NOTICE for license details.
+
 ARCHER = {
     "S-BAL3M": "archer.agf",
     "L-BAL35M": "archer.agf",
